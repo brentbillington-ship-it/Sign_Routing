@@ -60,6 +60,11 @@
   <div class="sidebar" id="sidebar"></div>
 </div>
 <script>
+const OSRM_TRIP_ENDPOINTS = [
+  'https://router.project-osrm.org',
+  'https://osrm.railnova.eu'
+];
+
 const ROUTES = [{"letter": "A", "stops": [{"name": "Barbara Arnt", "address": "722 Warwick Ln, Coppell, TX 75019", "signs": 1, "notes": "", "lat": 32.99072, "lon": -96.9729}, {"name": "Jason & Rachel Wilcox", "address": "833 Castle Creek Dr, Coppell, TX 75019", "signs": 1, "notes": "", "lat": 32.98559, "lon": -96.96631}, {"name": "Holly Visco", "address": "665 Raintree Cir, Coppell, TX 75019", "signs": 1, "notes": "INSTALL - anywhere in front yard", "lat": 32.98328, "lon": -96.96926}, {"name": "Brandi Ragland", "address": "817 Ashford Dr, Coppell, TX 75019", "signs": 1, "notes": "", "lat": 32.97942, "lon": -96.96552}, {"name": "Alyx Pease", "address": "818 Greenway Dr, Coppell, TX 75019", "signs": 1, "notes": "", "lat": 32.97866, "lon": -96.96546}, {"name": "Kevin & Holly Chaka", "address": "830 Greenway Dr, Coppell, TX 75019", "signs": 1, "notes": "", "lat": 32.97839, "lon": -96.96486}, {"name": "Di-ane Stokes", "address": "346 Greentree Dr, Coppell, TX 75019", "signs": 1, "notes": "", "lat": 32.97824, "lon": -96.96993}], "distance_mi": 1.5, "total_signs": 7, "link": "https://www.google.com/maps/dir/722%20Warwick%20Ln%2C%20Coppell%2C%20TX%2075019/833%20Castle%20Creek%20Dr%2C%20Coppell%2C%20TX%2075019/665%20Raintree%20Cir%2C%20Coppell%2C%20TX%2075019/817%20Ashford%20Dr%2C%20Coppell%2C%20TX%2075019/818%20Greenway%20Dr%2C%20Coppell%2C%20TX%2075019/830%20Greenway%20Dr%2C%20Coppell%2C%20TX%2075019/346%20Greentree%20Dr%2C%20Coppell%2C%20TX%2075019"}, {"letter": "B", "stops": [{"name": "Frank Gasparro", "address": "328 Crooked Tree Ct, Coppell, TX 75019", "signs": 2, "notes": "2 signs", "lat": 32.97897, "lon": -96.98843}, {"name": "Christy Mitchell", "address": "305 N Heartz Rd, Coppell, TX 75019", "signs": 1, "notes": "", "lat": 32.97752, "lon": -96.98965}, {"name": "Niko Leinonen", "address": "341 Kyle Dr, Coppell, TX 75019", "signs": 1, "notes": "", "lat": 32.97761, "lon": -96.98343}, {"name": "Jessica de la Chapelle", "address": "320 Clear Haven Dr, Coppell, TX 75019", "signs": 1, "notes": "", "lat": 32.97877, "lon": -96.97879}, {"name": "Katy McKinney", "address": "331 Still Forest Dr, Coppell, TX 75019", "signs": 1, "notes": "", "lat": 32.9788, "lon": -96.97837}, {"name": "Shae Nault-Hahn", "address": "140 Levee Pl, Coppell, TX 75019", "signs": 1, "notes": "", "lat": 32.9846, "lon": -96.99637}, {"name": "Laura Wortman", "address": "506 Eden St, Coppell, TX 75019", "signs": 1, "notes": "", "lat": 32.98709, "lon": -97.003}], "distance_mi": 1.1, "total_signs": 8, "link": "https://www.google.com/maps/dir/328%20Crooked%20Tree%20Ct%2C%20Coppell%2C%20TX%2075019/305%20N%20Heartz%20Rd%2C%20Coppell%2C%20TX%2075019/341%20Kyle%20Dr%2C%20Coppell%2C%20TX%2075019/320%20Clear%20Haven%20Dr%2C%20Coppell%2C%20TX%2075019/331%20Still%20Forest%20Dr%2C%20Coppell%2C%20TX%2075019/140%20Levee%20Pl%2C%20Coppell%2C%20TX%2075019/506%20Eden%20St%2C%20Coppell%2C%20TX%2075019"}, {"letter": "C", "stops": [{"name": "Mercy Hall", "address": "483 Grace Ln, Coppell, TX 75019", "signs": 3, "notes": "3 signs", "lat": 32.97366, "lon": -96.97999}, {"name": "Chris & Liz Boyd", "address": "346 Pecan Hollow Dr, Coppell, TX 75019", "signs": 1, "notes": "INSTALL", "lat": 32.97329, "lon": -96.98138}, {"name": "Byron Pascoe", "address": "341 Park Valley Dr, Coppell, TX 75019", "signs": 1, "notes": "", "lat": 32.97197, "lon": -96.98196}, {"name": "Christopher Blanton", "address": "108 Trailwood Ln, Coppell, TX 75019", "signs": 1, "notes": "", "lat": 32.97031, "lon": -96.98273}, {"name": "Dominic & Laura Nevarez", "address": "292 Park Valley Dr, Coppell, TX 75019", "signs": 1, "notes": "", "lat": 32.97241, "lon": -96.98525}, {"name": "Truc Skye", "address": "271 Park Valley Dr, Coppell, TX 75019", "signs": 1, "notes": "", "lat": 32.97202, "lon": -96.98656}, {"name": "Heather Thurgood", "address": "150 Pecan Hollow Dr, Coppell, TX 75019", "signs": 1, "notes": "", "lat": 32.97361, "lon": -96.986}, {"name": "Ted Ford", "address": "231 Sleepy Hollow Ln, Coppell, TX 75019", "signs": 1, "notes": "", "lat": 32.97467, "lon": -96.98763}, {"name": "Christopher Bryan / Nina Lovatt", "address": "227 Sleepy Hollow Ln, Coppell, TX 75019", "signs": 1, "notes": "", "lat": 32.97444, "lon": -96.98761}, {"name": "Arun Prasath", "address": "200 Sleepy Hollow Ln, Coppell, TX 75019", "signs": 1, "notes": "", "lat": 32.9731, "lon": -96.98699}], "distance_mi": 1.3, "total_signs": 12, "link": "https://www.google.com/maps/dir/483%20Grace%20Ln%2C%20Coppell%2C%20TX%2075019/346%20Pecan%20Hollow%20Dr%2C%20Coppell%2C%20TX%2075019/341%20Park%20Valley%20Dr%2C%20Coppell%2C%20TX%2075019/108%20Trailwood%20Ln%2C%20Coppell%2C%20TX%2075019/292%20Park%20Valley%20Dr%2C%20Coppell%2C%20TX%2075019/271%20Park%20Valley%20Dr%2C%20Coppell%2C%20TX%2075019/150%20Pecan%20Hollow%20Dr%2C%20Coppell%2C%20TX%2075019/231%20Sleepy%20Hollow%20Ln%2C%20Coppell%2C%20TX%2075019/227%20Sleepy%20Hollow%20Ln%2C%20Coppell%2C%20TX%2075019/200%20Sleepy%20Hollow%20Ln%2C%20Coppell%2C%20TX%2075019"}, {"letter": "D", "stops": [{"name": "Tammie Stewart", "address": "196 Diamond Ridge Dr, Coppell, TX 75019", "signs": 1, "notes": "INSTALL - place where most visible", "lat": 32.97394, "lon": -96.99478}, {"name": "Laura Penton", "address": "128 Summer Pl Dr, Coppell, TX 75019", "signs": 1, "notes": "", "lat": 32.97069, "lon": -97.00117}, {"name": "Pam Johnson", "address": "118 Winding Hollow Ln, Coppell, TX 75019", "signs": 1, "notes": "", "lat": 32.97269, "lon": -97.00824}, {"name": "Debra Fruithandler", "address": "150 Winding Hollow Ln, Coppell, TX 75019", "signs": 1, "notes": "", "lat": 32.97434, "lon": -97.00752}, {"name": "Molly Keith", "address": "257 Whispering Hills Dr, Coppell, TX 75019", "signs": 1, "notes": "", "lat": 32.96321, "lon": -97.0023}, {"name": "Brittany Gauntt", "address": "208 Jeb Ct, Coppell, TX 75019", "signs": 1, "notes": "", "lat": 32.96122, "lon": -96.99974}, {"name": "Mattie Colbert", "address": "118 Blackburn Dr, Coppell, TX 75019", "signs": 1, "notes": "", "lat": 32.96102, "lon": -96.99473}, {"name": "Brent Ball", "address": "322 Devon Dr, Coppell, TX 75019", "signs": 1, "notes": "", "lat": 32.96202, "lon": -96.99476}], "distance_mi": 3.3, "total_signs": 8, "link": "https://www.google.com/maps/dir/196%20Diamond%20Ridge%20Dr%2C%20Coppell%2C%20TX%2075019/128%20Summer%20Pl%20Dr%2C%20Coppell%2C%20TX%2075019/118%20Winding%20Hollow%20Ln%2C%20Coppell%2C%20TX%2075019/150%20Winding%20Hollow%20Ln%2C%20Coppell%2C%20TX%2075019/257%20Whispering%20Hills%20Dr%2C%20Coppell%2C%20TX%2075019/208%20Jeb%20Ct%2C%20Coppell%2C%20TX%2075019/118%20Blackburn%20Dr%2C%20Coppell%2C%20TX%2075019/322%20Devon%20Dr%2C%20Coppell%2C%20TX%2075019"}, {"letter": "E", "stops": [{"name": "Julie Wilke", "address": "716 Michelle Pl, Coppell, TX 75019", "signs": 1, "notes": "", "lat": 32.97743, "lon": -96.97099}, {"name": "Kayley Hager", "address": "732 Parkway Blvd, Coppell, TX 75019", "signs": 1, "notes": "", "lat": 32.97525, "lon": -96.96955}, {"name": "Kristi Walsh", "address": "728 Marlee Cir, Coppell, TX 75019", "signs": 1, "notes": "", "lat": 32.97439, "lon": -96.97031}, {"name": "Elizabeth Minkel", "address": "702 Alendale Dr, Coppell, TX 75019", "signs": 1, "notes": "", "lat": 32.97356, "lon": -96.97218}, {"name": "Courtney Torres", "address": "818 Meadowglen Cir, Coppell, TX 75019", "signs": 1, "notes": "", "lat": 32.9761, "lon": -96.96776}, {"name": "Beth Holland", "address": "220 Meadowglen Cir, Coppell, TX 75019", "signs": 1, "notes": "", "lat": 32.97453, "lon": -96.96577}, {"name": "Melodi Rouhani", "address": "208 Meadowglen Cir, Coppell, TX 75019", "signs": 1, "notes": "INSTALL", "lat": 32.9739, "lon": -96.96579}, {"name": "Hannah Benning", "address": "109 Deann Dr, Coppell, TX 75019", "signs": 1, "notes": "", "lat": 32.97069, "lon": -96.96735}, {"name": "Anna Pease", "address": "928 Westwind Cove, Coppell, TX 75019", "signs": 1, "notes": "", "lat": 32.97201, "lon": -96.96356}], "distance_mi": 1.1, "total_signs": 9, "link": "https://www.google.com/maps/dir/716%20Michelle%20Pl%2C%20Coppell%2C%20TX%2075019/732%20Parkway%20Blvd%2C%20Coppell%2C%20TX%2075019/728%20Marlee%20Cir%2C%20Coppell%2C%20TX%2075019/702%20Alendale%20Dr%2C%20Coppell%2C%20TX%2075019/818%20Meadowglen%20Cir%2C%20Coppell%2C%20TX%2075019/220%20Meadowglen%20Cir%2C%20Coppell%2C%20TX%2075019/208%20Meadowglen%20Cir%2C%20Coppell%2C%20TX%2075019/109%20Deann%20Dr%2C%20Coppell%2C%20TX%2075019/928%20Westwind%20Cove%2C%20Coppell%2C%20TX%2075019"}, {"letter": "F", "stops": [{"name": "Susan Boyles", "address": "217 Simmons Dr, Coppell, TX 75019", "signs": 1, "notes": "INSTALL - between house and sidewalk", "lat": 32.96698, "lon": -96.98522}, {"name": "Joy Smartt", "address": "638 Pheasant Ln, Coppell, TX 75019", "signs": 1, "notes": "", "lat": 32.96606, "lon": -96.97436}, {"name": "Lynn Fields", "address": "205 Mockingbird Ln, Coppell, TX 75019", "signs": 1, "notes": "", "lat": 32.96525, "lon": -96.97053}, {"name": "Tricia Badillo", "address": "144 Hill Dr, Coppell, TX 75019", "signs": 1, "notes": "", "lat": 32.96648, "lon": -96.969}, {"name": "Sherry & Buzz Lupton", "address": "747 Pelican Ln, Coppell, TX 75019", "signs": 1, "notes": "", "lat": 32.95785, "lon": -96.96994}, {"name": "Chris & Amy Kryzak", "address": "838 Pelican Ln, Coppell, TX 75019", "signs": 1, "notes": "", "lat": 32.9562, "lon": -96.96492}, {"name": "Krystle Hernandez", "address": "6404 Sandy Knoll Dr, Coppell, TX 75019", "signs": 1, "notes": "VERIFY - may be outside Coppell", "lat": 32.96658, "lon": -96.98156}, {"name": "Alyssa Moog", "address": "308 Forestcrest Ln, Coppell, TX 75019", "signs": 1, "notes": "", "lat": 32.95716, "lon": -96.98689}], "distance_mi": 3.2, "total_signs": 8, "link": "https://www.google.com/maps/dir/217%20Simmons%20Dr%2C%20Coppell%2C%20TX%2075019/638%20Pheasant%20Ln%2C%20Coppell%2C%20TX%2075019/205%20Mockingbird%20Ln%2C%20Coppell%2C%20TX%2075019/144%20Hill%20Dr%2C%20Coppell%2C%20TX%2075019/747%20Pelican%20Ln%2C%20Coppell%2C%20TX%2075019/838%20Pelican%20Ln%2C%20Coppell%2C%20TX%2075019/6404%20Sandy%20Knoll%20Dr%2C%20Coppell%2C%20TX%2075019/308%20Forestcrest%20Ln%2C%20Coppell%2C%20TX%2075019"}, {"letter": "G", "stops": [{"name": "Sarah Naef", "address": "1048 Creek Crossing, Coppell, TX 75019", "signs": 1, "notes": "", "lat": 32.97735, "lon": -96.95546}, {"name": "Linzey Tweed", "address": "204 Driftwood Dr, Coppell, TX 75019", "signs": 1, "notes": "", "lat": 32.97331, "lon": -96.95783}, {"name": "Jessie Zhang", "address": "1025 Cherrywood Trl, Coppell, TX 75019", "signs": 1, "notes": "", "lat": 32.97123, "lon": -96.95625}, {"name": "Lori Vincenzo", "address": "922 Laguna Dr, Coppell, TX 75019", "signs": 1, "notes": "", "lat": 32.97018, "lon": -96.96233}, {"name": "Alexandra Porcaro", "address": "322 Barclay Ave, Coppell, TX 75019", "signs": 1, "notes": "", "lat": 32.96252, "lon": -96.96188}, {"name": "Karla Moog", "address": "109 Sunrise Dr, Coppell, TX 75019", "signs": 1, "notes": "", "lat": 32.96459, "lon": -96.95049}, {"name": "Ram Prusty", "address": "101 Kimbel Kourt, Coppell, TX 75019", "signs": 1, "notes": "", "lat": 32.970589, "lon": -96.958929}], "distance_mi": 2.3, "total_signs": 7, "link": "https://www.google.com/maps/dir/1048%20Creek%20Crossing%2C%20Coppell%2C%20TX%2075019/204%20Driftwood%20Dr%2C%20Coppell%2C%20TX%2075019/1025%20Cherrywood%20Trl%2C%20Coppell%2C%20TX%2075019/922%20Laguna%20Dr%2C%20Coppell%2C%20TX%2075019/322%20Barclay%20Ave%2C%20Coppell%2C%20TX%2075019/109%20Sunrise%20Dr%2C%20Coppell%2C%20TX%2075019/101%20Kimbel%20Kourt%2C%20Coppell%2C%20TX%2075019"}];
 const COLORS = ['#f85149','#d29922','#3fb950','#58a6ff','#bc8cff','#f778ba','#39d2c0','#f0883e','#7ee787','#79c0ff'];
 const map = L.map('map').setView([32.972, -96.978], 14);
@@ -107,45 +112,62 @@ document.getElementById('map').appendChild(loadDiv);
 
 async function fetchOSRMTrip(stops, timeoutMs = 15000) {
   const coords = stops.map(s => s.lon + ',' + s.lat).join(';');
-  const url = 'https://router.project-osrm.org/trip/v1/driving/' + coords + '?overview=full&geometries=geojson&roundtrip=false&source=any&destination=any';
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), timeoutMs);
-  try {
-    const resp = await fetch(url, { signal: controller.signal, cache: 'no-store' });
-    const data = await resp.json();
-    if (data.code === 'Ok' && data.trips && data.trips[0]) {
-      const trip = data.trips[0];
-      const geomCoords = trip.geometry.coordinates.map(c => [c[1], c[0]]);
-      const dist = (trip.distance / 1609.34).toFixed(1);
-      const dur = Math.round(trip.duration / 60);
-      const order = data.waypoints.map(wp => wp.waypoint_index);
-      return { coords: geomCoords, distance_mi: dist, duration_min: dur, order };
+  let lastError = 'unknown error';
+
+  for (const baseUrl of OSRM_TRIP_ENDPOINTS) {
+    const url = baseUrl + '/trip/v1/driving/' + coords + '?overview=full&geometries=geojson&roundtrip=false&source=any&destination=any';
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), timeoutMs);
+
+    try {
+      const resp = await fetch(url, { signal: controller.signal, cache: 'no-store' });
+      if (!resp.ok) {
+        lastError = 'HTTP ' + resp.status + ' from ' + baseUrl;
+        continue;
+      }
+
+      const data = await resp.json();
+      if (data.code === 'Ok' && data.trips && data.trips[0]) {
+        const trip = data.trips[0];
+        const geomCoords = trip.geometry.coordinates.map(c => [c[1], c[0]]);
+        const dist = (trip.distance / 1609.34).toFixed(1);
+        const dur = Math.round(trip.duration / 60);
+        const order = data.waypoints.map(wp => wp.waypoint_index);
+        return { coords: geomCoords, distance_mi: dist, duration_min: dur, order, endpoint: baseUrl };
+      }
+
+      lastError = (data.code || 'UnknownCode') + ' from ' + baseUrl + (data.message ? ' (' + data.message + ')' : '');
+    } catch (e) {
+      lastError = (e && e.name === 'AbortError' ? 'timeout' : (e && e.message ? e.message : 'request failed')) + ' from ' + baseUrl;
+    } finally {
+      clearTimeout(timer);
     }
-  } catch (e) {
-    console.error('OSRM trip error:', e);
-  } finally {
-    clearTimeout(timer);
   }
-  return null;
+
+  return { error: lastError };
 }
 
 function applyResult(ri, result) {
   const route = ROUTES[ri];
   const color = COLORS[ri % COLORS.length];
-  if (!result) {
-    const infoEl = document.getElementById('info-' + route.letter);
-    if (infoEl) infoEl.textContent = route.total_signs + ' signs · original order';
-    return;
+  const infoEl = document.getElementById('info-' + route.letter);
+
+  if (!result || result.error) {
+    if (infoEl) infoEl.textContent = route.total_signs + ' signs · original order · ' + (result && result.error ? result.error : 'optimization failed');
+    return false;
   }
+
   routeGroups[route.letter].removeLayer(routePolylines[route.letter]);
   routePolylines[route.letter] = L.polyline(result.coords, {
     color, weight: 4, opacity: 0.75
   }).addTo(routeGroups[route.letter]);
+
   const oldStops = [...route.stops];
   const newStops = result.order.map(i => oldStops[i]);
   route.stops = newStops;
   const markers = routeMarkers[route.letter];
   const oldMarkers = [...markers];
+
   result.order.forEach((origIdx, newIdx) => {
     const m = oldMarkers[origIdx];
     routeGroups[route.letter].removeLayer(m.number);
@@ -162,6 +184,7 @@ function applyResult(ri, result) {
       (m.stop.notes ? '<br><span style="color:#b45309;font-weight:600">' + m.stop.notes + '</span>' : '')
     );
   });
+
   const gmLink = 'https://www.google.com/maps/dir/' + newStops.map(s => encodeURIComponent(s.address)).join('/');
   route.link = gmLink;
   const gmEl = document.getElementById('gmaps-' + route.letter);
@@ -176,10 +199,11 @@ function applyResult(ri, result) {
     }).join('') +
     '<div class="route-actions"><a class="route-link gmaps" id="gmaps-' + route.letter + '" href="' + gmLink + '" target="_blank">📍 Google Maps</a></div>';
   }
+
   route.osrm_dist = result.distance_mi;
   route.osrm_dur = result.duration_min;
-  const infoEl = document.getElementById('info-' + route.letter);
   if (infoEl) infoEl.textContent = route.total_signs + ' signs · ' + result.distance_mi + ' mi · ~' + result.duration_min + ' min';
+  return true;
 }
 
 const CACHE_KEY = 'osrm_v7_' + btoa(unescape(encodeURIComponent(JSON.stringify(ROUTES.map(r => ({
@@ -196,7 +220,7 @@ function loadCache() {
 
 async function loadAllRoutes() {
   const cached = loadCache();
-  if (cached) {
+  if (cached && cached.some(x => x && x.result && !x.result.error)) {
     cached.forEach(({ri, result}) => applyResult(ri, result));
     const el = document.getElementById('load-status');
     el.textContent = '✓ Routes loaded (cached)';
@@ -206,6 +230,8 @@ async function loadAllRoutes() {
   }
 
   const results = [];
+  let failed = 0;
+
   for (let ri = 0; ri < ROUTES.length; ri++) {
     const route = ROUTES[ri];
     const el = document.getElementById('load-status');
@@ -213,65 +239,24 @@ async function loadAllRoutes() {
 
     const result = await fetchOSRMTrip(route.stops, 15000);
     results.push({ ri, result });
-    applyResult(ri, result);
+    const ok = applyResult(ri, result);
+    if (!ok) failed += 1;
   }
 
-  saveCache(results);
-  const failed = results.filter(x => !x.result).length;
+  const successfulResults = results.filter(x => x.result && !x.result.error);
+  if (successfulResults.length) saveCache(successfulResults);
+
   const el = document.getElementById('load-status');
-  el.textContent = failed ? '✓ Finished (' + failed + ' route' + (failed > 1 ? 's' : '') + ' kept original order)' : '✓ Routes optimized (street-level)';
-  el.className = failed ? 'loading-msg warn' : 'loading-msg done';
-  setTimeout(() => el.style.display = 'none', 3000);
-}
-
-const sb = document.getElementById('sidebar');
-ROUTES.forEach((route, ri) => {
-  const color = COLORS[ri % COLORS.length];
-  const card = document.createElement('div');
-  card.className = 'route-card';
-  card.id = 'card-' + route.letter;
-  const stopsHtml = route.stops.map((s, si) => {
-    let extra = '';
-    if (s.signs > 1) extra += ' <span class="stop-signs">(x' + s.signs + ')</span>';
-    if (s.notes) extra += ' <span class="stop-notes">[' + s.notes + ']</span>';
-    return '<div class="stop"><span class="stop-num">' + (si + 1) + '.</span><div><span class="stop-name">' + s.name + '</span><br>' + s.address + extra + '</div></div>';
-  }).join('');
-  card.innerHTML =
-    '<div class="route-header" onclick="toggleRoute(\'' + route.letter + '\')">' +
-      '<div class="route-badge" style="background:' + color + '">' + route.letter + '</div>' +
-      '<div class="route-meta"><div class="title">Route ' + route.letter + ' — ' + route.stops.length + ' stops</div>' +
-      '<div class="info" id="info-' + route.letter + '">' + route.total_signs + ' signs · optimizing...</div></div>' +
-      '<div class="route-toggle">▼</div></div>' +
-    '<div class="route-stops" id="stops-' + route.letter + '">' + stopsHtml +
-      '<div class="route-actions">' +
-        '<a class="route-link gmaps" id="gmaps-' + route.letter + '" href="' + route.link + '" target="_blank">📍 Google Maps</a>' +
-      '</div></div>';
-  sb.appendChild(card);
-});
-
-function toggleRoute(letter) {
-  const card = document.getElementById('card-' + letter);
-  const wasOpen = card.classList.contains('open');
-  document.querySelectorAll('.route-card').forEach(c => c.classList.remove('open'));
-  if (!wasOpen) {
-    card.classList.add('open');
-    const pl = routePolylines[letter];
-    try { map.fitBounds(pl.getBounds(), {padding:[40,40]}); } catch (e) {
-      const route = ROUTES.find(r => r.letter === letter);
-      map.fitBounds(L.latLngBounds(route.stops.map(s => [s.lat, s.lon])), {padding:[40,40]});
-    }
+  if (failed) {
+    el.textContent = 'Finished — ' + (ROUTES.length - failed) + ' optimized, ' + failed + ' failed';
+    el.className = 'loading-msg warn';
+  } else {
+    el.textContent = '✓ Routes optimized (street-level)';
+    el.className = 'loading-msg done';
   }
+  setTimeout(() => el.style.display = 'none', 4000);
 }
 
-const legend = L.control({position:'bottomleft'});
-legend.onAdd = function() {
-  const div = L.DomUtil.create('div','legend');
-  div.innerHTML = ROUTES.map((r,i) =>
-    '<div class="legend-item"><div class="legend-dot" style="background:' + COLORS[i % COLORS.length] + '"></div>Route ' + r.letter + ' (' + r.stops.length + ')</div>'
-  ).join('');
-  return div;
-};
-legend.addTo(map);
 loadAllRoutes();
 </script>
 </body>
