@@ -219,17 +219,27 @@ async function fetchOSRMTrip(stops) {
       const geomCoords = trip.geometry.coordinates.map(c => [c[1],c[0]]);
       const dist = (trip.distance/1609.34).toFixed(1);
       const dur = Math.round(trip.duration/60);
-      const order = data.waypoints.map(wp => wp.waypoint_index);
+      // waypoints[i].waypoint_index = position-in-trip for input point i
+      // We need: order[tripPosition] = inputIndex
+      const order = new Array(stops.length);
+      data.waypoints.forEach((wp, inputIdx) => {
+        order[wp.waypoint_index] = inputIdx;
+      });
       return { coords: geomCoords, distance_mi: dist, duration_min: dur, order };
     }
   } catch(e) { console.error('OSRM trip error:', e); }
   return null;
 }
 
-async function applyResult(ri, result) {
+function applyResult(ri, result) {
   const route = ROUTES[ri];
   const color = COLORS[ri % COLORS.length];
-  if (!result) return;
+  if (!result) {
+    const infoEl = document.getElementById('info-'+route.letter);
+    if (infoEl) infoEl.textContent = route.total_signs+' signs · routing failed, using straight lines';
+    return;
+  }
+  try {
   routeGroups[route.letter].removeLayer(routePolylines[route.letter]);
   routePolylines[route.letter] = L.polyline(result.coords, {
     color, weight: 4, opacity: 0.75
@@ -273,6 +283,11 @@ async function applyResult(ri, result) {
   route.osrm_dur = result.duration_min;
   const infoEl = document.getElementById('info-'+route.letter);
   if (infoEl) infoEl.textContent = route.total_signs+' signs \u00b7 '+result.distance_mi+' mi \u00b7 ~'+result.duration_min+' min';
+  } catch(e) {
+    console.error('applyResult error for route '+route.letter+':', e);
+    const infoEl = document.getElementById('info-'+route.letter);
+    if (infoEl) infoEl.textContent = route.total_signs+' signs · error applying route';
+  }
 }
 
 // Cache key based on stop coordinates so cache busts if data changes
