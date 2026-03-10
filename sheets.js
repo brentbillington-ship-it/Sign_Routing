@@ -1,12 +1,8 @@
 // ─── Google Sheets API Module ───
 // Apps Script POST responses redirect to googleusercontent.com which blocks CORS.
-// Solution: always use GET with a ?payload= encoded body — Apps Script handles it natively.
+// All calls use GET with ?payload= encoded JSON — the only reliable approach.
 
 const SheetsAPI = {
-  async getAll() {
-    return this._get({ action: 'getAll' });
-  },
-
   async _get(data) {
     const encoded = encodeURIComponent(JSON.stringify(data));
     const url = CONFIG.SHEETS_API_URL + '?payload=' + encoded;
@@ -20,45 +16,17 @@ const SheetsAPI = {
     }
   },
 
-  async addStop(stop) {
-    return this._get({ action: 'addStop', stop });
-  },
-
-  async removeStop(id) {
-    return this._get({ action: 'removeStop', id });
-  },
-
-  async updateStop(id, fields) {
-    return this._get({ action: 'updateStop', id, fields });
-  },
-
-  async markDelivered(id, delivered, deliveredBy) {
-    return this._get({ action: 'markDelivered', id, delivered, delivered_by: deliveredBy });
-  },
-
-  async reassignStop(id, newRoute) {
-    return this._get({ action: 'reassignStop', id, newRoute });
-  },
-
-  async reorderStops(route, orderIds) {
-    return this._get({ action: 'reorderStops', route, order: orderIds });
-  },
-
-  async addRoute(letter, color, volunteer) {
-    return this._get({ action: 'addRoute', letter, color, volunteer });
-  },
-
-  async deleteRoute(letter) {
-    return this._get({ action: 'deleteRoute', letter });
-  },
-
-  async updateRoute(letter, fields) {
-    return this._get({ action: 'updateRoute', letter, fields });
-  },
-
-  async bulkImport(routes) {
-    return this._get({ action: 'bulkImport', routes });
-  }
+  async getAll()                      { return this._get({ action: 'getAll' }); },
+  async addStop(stop)                 { return this._get({ action: 'addStop', stop }); },
+  async removeStop(id)                { return this._get({ action: 'removeStop', id }); },
+  async updateStop(id, fields)        { return this._get({ action: 'updateStop', id, fields }); },
+  async markDelivered(id, del, by)    { return this._get({ action: 'markDelivered', id, delivered: del, delivered_by: by }); },
+  async reassignStop(id, newRoute)    { return this._get({ action: 'reassignStop', id, newRoute }); },
+  async reorderStops(route, orderIds) { return this._get({ action: 'reorderStops', route, order: orderIds }); },
+  async addRoute(letter, color, vol)  { return this._get({ action: 'addRoute', letter, color, volunteer: vol }); },
+  async deleteRoute(letter)           { return this._get({ action: 'deleteRoute', letter }); },
+  async updateRoute(letter, fields)   { return this._get({ action: 'updateRoute', letter, fields }); },
+  async bulkImport(routes)            { return this._get({ action: 'bulkImport', routes }); }
 };
 
 // ─── Nominatim Geocoding ───
