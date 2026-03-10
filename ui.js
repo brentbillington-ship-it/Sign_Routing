@@ -884,18 +884,11 @@ const UI = {
   },
 
   toggleMap() {
-    const mapEl = document.getElementById('map');
+    const wrap = document.getElementById('map-wrap');
     const btn = document.getElementById('map-toggle-btn');
-    const isHidden = mapEl.classList.toggle('map-hidden');
-    if (isHidden) {
-      mapEl.style.setProperty('height', '0', 'important');
-      mapEl.style.overflow = 'hidden';
-      btn.textContent = '🗺 Show Map';
-    } else {
-      mapEl.style.removeProperty('height');
-      mapEl.style.overflow = '';
-      btn.textContent = '🗺 Map';
-      // Give browser a frame to reflow before Leaflet measures
+    const isHidden = wrap.classList.toggle('map-hidden');
+    btn.textContent = isHidden ? '🗺 Show Map' : '🗺 Map';
+    if (!isHidden) {
       requestAnimationFrame(() => {
         setTimeout(() => MapModule.map.invalidateSize(), 50);
       });
