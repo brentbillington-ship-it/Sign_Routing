@@ -72,8 +72,8 @@ const App = {
     this._pollPresence();
     this._presencePollInterval = setInterval(() => this._pollPresence(), 15000);
 
-    // Silent background data refresh every 60s — keeps map current
-    this._dataRefreshInterval = setInterval(() => this._silentRefresh(), 60000);
+    // Silent background data refresh every 15s — keeps map current
+    this._dataRefreshInterval = setInterval(() => this._silentRefresh(), 15000);
 
     // Clean up on tab close
     window.addEventListener('beforeunload', () => {
