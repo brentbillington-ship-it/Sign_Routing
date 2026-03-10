@@ -27,7 +27,6 @@ const SheetsAPI = {
   async deleteRoute(letter)           { return this._get({ action: 'deleteRoute', letter }); },
   async updateRoute(letter, fields)   { return this._get({ action: 'updateRoute', letter, fields }); },
   async bulkImport(routes)            { return this._get({ action: 'bulkImport', routes }); },
-  async fixAllOrders()                { return this._get({ action: 'fixAllOrders' }); },
   async heartbeat(name, sessionId)    { return this._get({ action: 'heartbeat', name, sessionId }); },
   async getPresence()                 { return this._get({ action: 'getPresence' }); }
 };

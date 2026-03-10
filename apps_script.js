@@ -82,7 +82,6 @@ function handleAction(data) {
       case 'deleteRoute':   result = deleteRoute(data.letter);                           break;
       case 'updateRoute':   result = updateRoute(data.letter, data.fields);              break;
       case 'bulkImport':    result = bulkImport(data.routes);                            break;
-      case 'fixAllOrders':  result = fixAllOrders();                                       break;
       case 'heartbeat':     result = heartbeat(data.name, data.sessionId);               break;
       case 'getPresence':   result = getPresence();                                      break;
       default:              result = { error: 'Unknown action: ' + action };
@@ -185,7 +184,7 @@ function removeStop(id) {
   const sheet = getSheet('stops');
   const data = sheet.getDataRange().getValues();
   for (let i = 1; i < data.length; i++) {
-    if (data[i][0] === id) {
+    if (String(data[i][0]) === String(id)) {
       sheet.deleteRow(i + 1);
       SpreadsheetApp.flush();
       return { success: true };
@@ -199,7 +198,7 @@ function updateStop(id, fields) {
   const data = sheet.getDataRange().getValues();
   const headers = data[0];
   for (let i = 1; i < data.length; i++) {
-    if (data[i][0] === id) {
+    if (String(data[i][0]) === String(id)) {
       for (const [key, value] of Object.entries(fields)) {
         const col = headers.indexOf(key);
         if (col >= 0) sheet.getRange(i + 1, col + 1).setValue(value);
@@ -216,7 +215,7 @@ function markDelivered(id, delivered, deliveredBy) {
   const data = sheet.getDataRange().getValues();
   const headers = data[0];
   for (let i = 1; i < data.length; i++) {
-    if (data[i][0] === id) {
+    if (String(data[i][0]) === String(id)) {
       sheet.getRange(i + 1, headers.indexOf('delivered') + 1).setValue(delivered);
       sheet.getRange(i + 1, headers.indexOf('delivered_date') + 1).setValue(delivered ? new Date().toISOString() : '');
       sheet.getRange(i + 1, headers.indexOf('delivered_by') + 1).setValue(delivered ? (deliveredBy || '') : '');
@@ -228,36 +227,7 @@ function markDelivered(id, delivered, deliveredBy) {
 }
 
 function reassignStop(id, newRoute) {
-  const moveResult = updateStop(id, { route: newRoute });
-  if (moveResult.error) return moveResult;
-  renumberAllRoutes();
-  return { success: true };
-}
-
-function renumberAllRoutes() {
-  const sheet = getSheet('stops');
-  const data = sheet.getDataRange().getValues();
-  const headers = data[0];
-  const routeCol = headers.indexOf('route');
-  const sortCol = headers.indexOf('sort_order');
-
-  // Group row indices by route, preserving current sort order
-  const routeRows = {};
-  for (let i = 1; i < data.length; i++) {
-    const route = String(data[i][routeCol]);
-    if (!route) continue;
-    if (!routeRows[route]) routeRows[route] = [];
-    routeRows[route].push({ rowIdx: i + 1, sortOrder: parseInt(data[i][sortCol]) || 0 });
-  }
-
-  // Rewrite sort_order as clean 1,2,3... per route
-  for (const route of Object.keys(routeRows)) {
-    const rows = routeRows[route].sort((a, b) => a.sortOrder - b.sortOrder);
-    rows.forEach((r, idx) => {
-      sheet.getRange(r.rowIdx, sortCol + 1).setValue(idx + 1);
-    });
-  }
-  SpreadsheetApp.flush();
+  return updateStop(id, { route: newRoute });
 }
 
 function reorderStops(routeLetter, orderIds) {
@@ -267,7 +237,7 @@ function reorderStops(routeLetter, orderIds) {
   const sortCol = headers.indexOf('sort_order');
   orderIds.forEach((id, idx) => {
     for (let i = 1; i < data.length; i++) {
-      if (data[i][0] === id) {
+      if (String(data[i][0]) === String(id)) {
         sheet.getRange(i + 1, sortCol + 1).setValue(idx + 1);
         break;
       }
@@ -354,13 +324,6 @@ function bulkImport(routes) {
 
   SpreadsheetApp.flush();
   return { success: true, routes: routes.length, stops: routes.reduce((sum, r) => sum + r.stops.length, 0) };
-}
-
-// ─── Fix All Orders ───
-
-function fixAllOrders() {
-  renumberAllRoutes();
-  return { success: true, message: 'All route sort orders fixed' };
 }
 
 // ─── Presence ───

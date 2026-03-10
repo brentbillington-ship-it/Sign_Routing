@@ -164,7 +164,6 @@ const UI = {
       <button class="btn" onclick="UI.showImportForm()">⤒ Import CSV</button>
       <button class="btn" onclick="App.exportCSV()">⤓ Export CSV</button>
       <button class="btn" onclick="App.tryOSRM()">↻ Optimize All (OSRM)</button>
-      <button class="btn" onclick="App.fixAllOrders()" title="Fix sort order collisions from reassigned stops">🔧 Fix Orders</button>
     `;
     bar.style.display = 'none';
   },
