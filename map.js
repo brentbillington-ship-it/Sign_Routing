@@ -11,6 +11,8 @@ const MapModule = {
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       attribution: '\u00a9 OSM', maxZoom: 19
     }).addTo(this.map);
+    // Let flexbox settle before Leaflet measures the container
+    setTimeout(() => this.map.invalidateSize(), 100);
   },
 
   clearAll() {
@@ -70,7 +72,7 @@ const MapModule = {
         popupHtml += `<div style="margin-top:6px;padding:4px 8px;background:#2ea043;color:#fff;border-radius:4px;font-size:11px;font-weight:600;display:inline-block">\u2713 Delivered</div>`;
         if (stop.delivered_date) {
           const d = new Date(stop.delivered_date);
-          popupHtml += `<div style="font-size:10px;color:#888;margin-top:2px">${d.toLocaleDateString()} ${d.toLocaleTimeString()}</div>`;
+          popupHtml += `<div style="font-size:10px;color:#888;margin-top:2px">${d.toLocaleString('en-US', { timeZone: 'America/Chicago', month: 'numeric', day: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true })} CT</div>`;
         }
         if (stop.delivered_by) popupHtml += `<div style="font-size:10px;color:#888">by ${stop.delivered_by}</div>`;
       }
@@ -130,12 +132,12 @@ const MapModule = {
   },
 
   addLegend(routes) {
-    // Remove existing legend
     if (this._legend) this._legend.remove();
     const legend = L.control({ position: 'bottomleft' });
     legend.onAdd = () => {
       const div = L.DomUtil.create('div');
-      div.style.cssText = 'background:rgba(13,17,23,.92);border:1px solid #30363d;border-radius:6px;padding:10px 14px;font-size:11px;font-family:"DM Sans",sans-serif;color:#c9d1d9';
+      div.className = 'map-legend';
+      div.style.cssText = 'background:rgba(13,17,23,.92);border:1px solid #30363d;border-radius:6px;padding:10px 14px;font-size:11px;font-family:"DM Sans",sans-serif;color:#c9d1d9;margin-bottom:8px;margin-left:8px';
       div.innerHTML = routes.map((r, i) => {
         const c = r.color || CONFIG.ROUTE_COLORS[i % CONFIG.ROUTE_COLORS.length];
         const delivered = r.stops.filter(s => s.delivered).length;
@@ -176,12 +178,116 @@ const MapModule = {
     const color = route.color || '#58a6ff';
     const group = this.routeGroups[route.letter];
     if (!group) return;
-    // Remove old polyline
     if (this.routePolylines[route.letter]) {
       group.removeLayer(this.routePolylines[route.letter]);
     }
     this.routePolylines[route.letter] = L.polyline(coords, {
       color, weight: 4, opacity: 0.75
     }).addTo(group);
+  },
+
+  // ─── My Location ───
+
+  _locationWatchId: null,
+  _locationMarker: null,
+  _locationAccuracyCircle: null,
+  _locationActive: false,
+
+  toggleMyLocation() {
+    if (this._locationActive) {
+      this.stopMyLocation();
+    } else {
+      this.startMyLocation();
+    }
+  },
+
+  startMyLocation() {
+    if (!navigator.geolocation) {
+      UI.showToast('Geolocation not supported by this browser', 'error');
+      return;
+    }
+
+    const btn = document.getElementById('location-btn');
+    if (btn) { btn.textContent = '📍 Locating…'; btn.disabled = true; }
+
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        this._locationActive = true;
+        if (btn) { btn.textContent = '📍 Stop'; btn.disabled = false; btn.classList.add('btn-green'); }
+        this._updateLocationMarker(pos);
+        // Pan to location on first fix
+        this.map.setView([pos.coords.latitude, pos.coords.longitude], Math.max(this.map.getZoom(), 15));
+        UI.showToast('📍 Location found', 'success');
+        // Watch for updates as they move
+        this._locationWatchId = navigator.geolocation.watchPosition(
+          (p) => this._updateLocationMarker(p),
+          (e) => this._locationError(e),
+          { enableHighAccuracy: true, maximumAge: 5000 }
+        );
+      },
+      (err) => this._locationError(err),
+      { enableHighAccuracy: true, timeout: 10000 }
+    );
+  },
+
+  stopMyLocation() {
+    if (this._locationWatchId !== null) {
+      navigator.geolocation.clearWatch(this._locationWatchId);
+      this._locationWatchId = null;
+    }
+    if (this._locationMarker) { this._locationMarker.remove(); this._locationMarker = null; }
+    if (this._locationAccuracyCircle) { this._locationAccuracyCircle.remove(); this._locationAccuracyCircle = null; }
+    this._locationActive = false;
+    const btn = document.getElementById('location-btn');
+    if (btn) { btn.textContent = '📍 My Location'; btn.disabled = false; btn.classList.remove('btn-green'); }
+    UI.showToast('Location stopped', 'info');
+  },
+
+  _updateLocationMarker(pos) {
+    const { latitude: lat, longitude: lon, accuracy } = pos.coords;
+    const latlng = [lat, lon];
+
+    // Accuracy circle
+    if (this._locationAccuracyCircle) {
+      this._locationAccuracyCircle.setLatLng(latlng).setRadius(accuracy);
+    } else {
+      this._locationAccuracyCircle = L.circle(latlng, {
+        radius: accuracy,
+        color: '#4a90d9',
+        fillColor: '#4a90d9',
+        fillOpacity: 0.12,
+        weight: 1,
+        opacity: 0.4
+      }).addTo(this.map);
+    }
+
+    // Pulsing dot marker
+    if (this._locationMarker) {
+      this._locationMarker.setLatLng(latlng);
+    } else {
+      this._locationMarker = L.marker(latlng, {
+        icon: L.divIcon({
+          html: '<div class="location-dot"><div class="location-pulse"></div></div>',
+          className: '',
+          iconSize: [20, 20],
+          iconAnchor: [10, 10]
+        }),
+        zIndexOffset: 1000
+      }).addTo(this.map);
+      this._locationMarker.bindPopup('<div style="font-family:\'DM Sans\',sans-serif;font-size:12px;font-weight:600">📍 You are here</div>');
+    }
+  },
+
+  _locationError(err) {
+    this._locationActive = false;
+    const btn = document.getElementById('location-btn');
+    if (btn) { btn.textContent = '📍 My Location'; btn.disabled = false; btn.classList.remove('btn-green'); }
+    const msgs = {
+      1: 'Location access denied — please allow location in your browser settings',
+      2: 'Location unavailable — check GPS signal',
+      3: 'Location request timed out — try again'
+    };
+    UI.showToast(msgs[err.code] || 'Location error', 'error');
   }
+
 };
