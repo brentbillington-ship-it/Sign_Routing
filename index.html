@@ -128,72 +128,82 @@ async function fetchOSRMTrip(stops) {
   return null;
 }
 
-async function loadAllRoutes() {
-  for (let ri=0; ri<ROUTES.length; ri++) {
-    const route = ROUTES[ri];
-    const color = COLORS[ri % COLORS.length];
-    const result = await fetchOSRMTrip(route.stops);
-    if (result) {
-      // Remove placeholder
-      routeGroups[route.letter].removeLayer(routePolylines[route.letter]);
-      // Draw real street polyline
-      routePolylines[route.letter] = L.polyline(result.coords, {
-        color, weight: 4, opacity: 0.75
-      }).addTo(routeGroups[route.letter]);
-
-      // Reorder stops according to OSRM trip optimization
-      const oldStops = [...route.stops];
-      const newStops = result.order.map(i => oldStops[i]);
-      route.stops = newStops;
-
-      // Update marker numbers
-      const markers = routeMarkers[route.letter];
-      const oldMarkers = [...markers];
-      result.order.forEach((origIdx, newIdx) => {
-        const m = oldMarkers[origIdx];
-        // Update number label
-        routeGroups[route.letter].removeLayer(m.number);
-        m.number = L.marker([m.stop.lat, m.stop.lon], {
-          icon: L.divIcon({
-            html: '<div style="width:16px;height:16px;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:800;color:#fff">'+(newIdx+1)+'</div>',
-            className:'', iconSize:[16,16], iconAnchor:[8,8]
-          }), interactive: false
-        }).addTo(routeGroups[route.letter]);
-        // Update popup
-        m.circle.setPopupContent(
-          '<b style="font-size:12px;color:#333">Route '+route.letter+' \u00b7 #'+(newIdx+1)+'</b><br>'+
-          '<b style="color:#333">'+m.stop.name+'</b><br><span style="color:#555">'+m.stop.address+'</span>'+
-          (m.stop.signs>1?'<br><span style="color:#7c3aed;font-weight:600">'+m.stop.signs+' signs</span>':'')+
-          (m.stop.notes?'<br><span style="color:#b45309;font-weight:600">'+m.stop.notes+'</span>':'')
-        );
-      });
-
-      // Rebuild Google Maps link with optimized order
-      const gmLink = 'https://www.google.com/maps/dir/' + newStops.map(s => encodeURIComponent(s.address)).join('/');
-      route.link = gmLink;
-      const gmEl = document.getElementById('gmaps-'+route.letter);
-      if (gmEl) gmEl.href = gmLink;
-
-      // Update sidebar stop list
-      const stopsEl = document.getElementById('stops-'+route.letter);
-      if (stopsEl) {
-        stopsEl.innerHTML = newStops.map((s, si) => {
-          let extra = '';
-          if (s.signs>1) extra += ' <span class="stop-signs">(x'+s.signs+')</span>';
-          if (s.notes) extra += ' <span class="stop-notes">['+s.notes+']</span>';
-          return '<div class="stop"><span class="stop-num">'+(si+1)+'.</span><div><span class="stop-name">'+s.name+'</span><br>'+s.address+extra+'</div></div>';
-        }).join('') +
-        '<div class="route-actions"><a class="route-link gmaps" id="gmaps-'+route.letter+'" href="'+gmLink+'" target="_blank">\ud83d\udccd Google Maps</a></div>';
-      }
-
-      route.osrm_dist = result.distance_mi;
-      route.osrm_dur = result.duration_min;
-      const infoEl = document.getElementById('info-'+route.letter);
-      if (infoEl) infoEl.textContent = route.total_signs+' signs \u00b7 '+result.distance_mi+' mi \u00b7 ~'+result.duration_min+' min';
-    }
-    document.getElementById('load-status').textContent = 'Routing: '+(ri+1)+'/'+ROUTES.length+'...';
-    if (ri < ROUTES.length-1) await new Promise(r => setTimeout(r, 1200));
+async function applyResult(ri, result) {
+  const route = ROUTES[ri];
+  const color = COLORS[ri % COLORS.length];
+  if (!result) return;
+  routeGroups[route.letter].removeLayer(routePolylines[route.letter]);
+  routePolylines[route.letter] = L.polyline(result.coords, {
+    color, weight: 4, opacity: 0.75
+  }).addTo(routeGroups[route.letter]);
+  const oldStops = [...route.stops];
+  const newStops = result.order.map(i => oldStops[i]);
+  route.stops = newStops;
+  const markers = routeMarkers[route.letter];
+  const oldMarkers = [...markers];
+  result.order.forEach((origIdx, newIdx) => {
+    const m = oldMarkers[origIdx];
+    routeGroups[route.letter].removeLayer(m.number);
+    m.number = L.marker([m.stop.lat, m.stop.lon], {
+      icon: L.divIcon({
+        html: '<div style="width:16px;height:16px;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:800;color:#fff">'+(newIdx+1)+'</div>',
+        className:'', iconSize:[16,16], iconAnchor:[8,8]
+      }), interactive: false
+    }).addTo(routeGroups[route.letter]);
+    m.circle.setPopupContent(
+      '<b style="font-size:12px;color:#333">Route '+route.letter+' \u00b7 #'+(newIdx+1)+'</b><br>'+
+      '<b style="color:#333">'+m.stop.name+'</b><br><span style="color:#555">'+m.stop.address+'</span>'+
+      (m.stop.signs>1?'<br><span style="color:#7c3aed;font-weight:600">'+m.stop.signs+' signs</span>':'')+
+      (m.stop.notes?'<br><span style="color:#b45309;font-weight:600">'+m.stop.notes+'</span>':'')
+    );
+  });
+  const gmLink = 'https://www.google.com/maps/dir/' + newStops.map(s => encodeURIComponent(s.address)).join('/');
+  route.link = gmLink;
+  const gmEl = document.getElementById('gmaps-'+route.letter);
+  if (gmEl) gmEl.href = gmLink;
+  const stopsEl = document.getElementById('stops-'+route.letter);
+  if (stopsEl) {
+    stopsEl.innerHTML = newStops.map((s, si) => {
+      let extra = '';
+      if (s.signs>1) extra += ' <span class="stop-signs">(x'+s.signs+')</span>';
+      if (s.notes) extra += ' <span class="stop-notes">['+s.notes+']</span>';
+      return '<div class="stop"><span class="stop-num">'+(si+1)+'.</span><div><span class="stop-name">'+s.name+'</span><br>'+s.address+extra+'</div></div>';
+    }).join('') +
+    '<div class="route-actions"><a class="route-link gmaps" id="gmaps-'+route.letter+'" href="'+gmLink+'" target="_blank">\ud83d\udccd Google Maps</a></div>';
   }
+  route.osrm_dist = result.distance_mi;
+  route.osrm_dur = result.duration_min;
+  const infoEl = document.getElementById('info-'+route.letter);
+  if (infoEl) infoEl.textContent = route.total_signs+' signs \u00b7 '+result.distance_mi+' mi \u00b7 ~'+result.duration_min+' min';
+}
+
+// Cache key based on a hash of all stop coordinates so cache busts if data changes
+const CACHE_KEY = 'osrm_cache_' + ROUTES.map(r => r.letter + r.stops.map(s => s.lat+','+s.lon).join(';')).join('|').length;
+
+function saveCache(allResults) {
+  try { localStorage.setItem(CACHE_KEY, JSON.stringify(allResults)); } catch(e) {}
+}
+function loadCache() {
+  try { const c = localStorage.getItem(CACHE_KEY); return c ? JSON.parse(c) : null; } catch(e) { return null; }
+}
+
+async function loadAllRoutes() {
+  const cached = loadCache();
+  if (cached) {
+    // Use cached results instantly
+    cached.forEach(({ri, result}) => applyResult(ri, result));
+    const el = document.getElementById('load-status');
+    el.textContent = '\u2713 Routes loaded (cached)';
+    el.className = 'loading-msg done';
+    setTimeout(() => el.style.display='none', 2000);
+    return;
+  }
+  // Fire all OSRM requests in parallel
+  const promises = ROUTES.map((route, ri) => fetchOSRMTrip(route.stops).then(result => ({ri, result})));
+  const results = await Promise.all(promises);
+  results.forEach(({ri, result}) => applyResult(ri, result));
+  // Cache for next time
+  saveCache(results);
   const el = document.getElementById('load-status');
   el.textContent = '\u2713 Routes optimized (street-level)';
   el.className = 'loading-msg done';
