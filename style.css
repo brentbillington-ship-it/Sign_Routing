@@ -543,3 +543,9 @@ body {
   transition: transform .15s;
 }
 .presence-avatar:hover { transform: scale(1.2); z-index: 1; }
+
+/* ─── Leaflet legend clearance ─── */
+.leaflet-bottom { padding-bottom: 4px; }
+
+/* Tap-to-copy stop detail hint */
+.stop-detail:active { opacity: 0.6; }

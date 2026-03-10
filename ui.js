@@ -374,7 +374,7 @@ const UI = {
           ${deliverBtn}
           <div class="stop-content">
             <span class="stop-num">${actualIndex + 1}.</span>
-            <div class="stop-detail">
+            <div class="stop-detail" onclick="event.stopPropagation(); UI.copyStopAddress('${s.address}', '${s.name.replace(/'/g, "\\'")}')" title="Tap to copy address" style="cursor:pointer">
               <span class="stop-name">${s.name}</span><br>${s.address}${extra}
               ${deliveryInfo}
             </div>
@@ -456,6 +456,20 @@ const UI = {
       document.execCommand('copy');
       ta.remove();
       this.showToast(`Copied Route ${letter} addresses`, 'success');
+    });
+  },
+
+  copyStopAddress(address, name) {
+    navigator.clipboard.writeText(address).then(() => {
+      this.showToast(`📋 Copied: ${address}`, 'success');
+    }).catch(() => {
+      const ta = document.createElement('textarea');
+      ta.value = address;
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand('copy');
+      ta.remove();
+      this.showToast(`📋 Copied: ${address}`, 'success');
     });
   },
 
@@ -870,12 +884,19 @@ const UI = {
   },
 
   toggleMap() {
-    const map = document.getElementById('map');
+    const mapEl = document.getElementById('map');
     const btn = document.getElementById('map-toggle-btn');
-    const isHidden = map.classList.toggle('map-hidden');
-    btn.textContent = isHidden ? '🗺 Show Map' : '🗺 Map';
-    // Leaflet needs a size invalidation when map becomes visible again
-    if (!isHidden) setTimeout(() => MapModule.map.invalidateSize(), 50);
+    const isHidden = mapEl.classList.toggle('map-hidden');
+    if (isHidden) {
+      mapEl.style.height = '0';
+      mapEl.style.overflow = 'hidden';
+      btn.textContent = '🗺 Show Map';
+    } else {
+      mapEl.style.height = '';
+      mapEl.style.overflow = '';
+      btn.textContent = '🗺 Map';
+      setTimeout(() => MapModule.map.invalidateSize(), 50);
+    }
   },
 
   // ─── Presence Avatars ───
