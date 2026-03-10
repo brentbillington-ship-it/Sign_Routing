@@ -194,6 +194,7 @@ function addStop(stop) {
     '',
     ''
   ]);
+  SpreadsheetApp.flush();
 
   return { success: true, id: id };
 }
@@ -204,6 +205,7 @@ function removeStop(id) {
   for (let i = 1; i < data.length; i++) {
     if (data[i][0] === id) {
       sheet.deleteRow(i + 1);
+      SpreadsheetApp.flush();
       return { success: true };
     }
   }
@@ -223,6 +225,7 @@ function updateStop(id, fields) {
           sheet.getRange(i + 1, col + 1).setValue(value);
         }
       }
+      SpreadsheetApp.flush();
       return { success: true };
     }
   }
@@ -243,6 +246,7 @@ function markDelivered(id, delivered, deliveredBy) {
       sheet.getRange(i + 1, deliveredCol + 1).setValue(delivered);
       sheet.getRange(i + 1, dateCol + 1).setValue(delivered ? new Date().toISOString() : '');
       sheet.getRange(i + 1, byCol + 1).setValue(delivered ? (deliveredBy || '') : '');
+      SpreadsheetApp.flush();
 
       return { success: true };
     }

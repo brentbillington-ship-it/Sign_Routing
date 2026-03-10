@@ -2,7 +2,7 @@
 // Paste your Google Apps Script deployment URL below
 const CONFIG = {
   SHEETS_API_URL: 'https://script.google.com/macros/s/AKfycbzOPQdt1wBuYGCv_sKTG-otW0jayKr3H9IFG6qGaoZy1qb_ZulhmNYFBlukjvJEa6yawA/exec',
-  ADMIN_PASSWORD: 'chaka2026',
+  ADMIN_PASSWORD: 'choochoo',
   DEFAULT_CITY: 'Coppell, TX 75019',
   MAP_CENTER: [32.972, -96.978],
   MAP_ZOOM: 14,
