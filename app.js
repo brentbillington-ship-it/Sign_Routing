@@ -327,6 +327,18 @@ const App = {
     }
   },
 
+  async fixAllOrders() {
+    UI.showToast('Fixing route order…', 'info');
+    try {
+      const result = await SheetsAPI.fixAllOrders();
+      if (result.error) throw new Error(result.error);
+      await this.loadData();
+      UI.showToast('✓ Route orders fixed', 'success');
+    } catch (e) {
+      UI.showToast('Failed: ' + e.message, 'error');
+    }
+  },
+
   async tryOSRM() {
     UI.showToast('Attempting OSRM optimization…', 'info');
     let success = 0;
