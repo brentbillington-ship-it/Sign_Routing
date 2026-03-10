@@ -48,18 +48,120 @@
 <body>
 <div class="header">
   <h1>Chaka Yard Sign Routes</h1>
-  <div class="stats">
-    <div><span>7</span> Routes</div>
-    <div><span>56</span> Stops</div>
-    <div><span>59</span> Signs</div>
-  </div>
+  <div class="stats" id="header-stats"></div>
 </div>
 <div class="container">
   <div id="map"></div>
   <div class="sidebar" id="sidebar"></div>
 </div>
 <script>
-const ROUTES = [{"letter": "A", "stops": [{"name": "Barbara Arnt", "address": "722 Warwick Ln, Coppell, TX 75019", "signs": 1, "notes": "", "lat": 32.99072, "lon": -96.9729}, {"name": "Jason & Rachel Wilcox", "address": "833 Castle Creek Dr, Coppell, TX 75019", "signs": 1, "notes": "", "lat": 32.98559, "lon": -96.96631}, {"name": "Holly Visco", "address": "665 Raintree Cir, Coppell, TX 75019", "signs": 1, "notes": "INSTALL - anywhere in front yard", "lat": 32.98328, "lon": -96.96926}, {"name": "Brandi Ragland", "address": "817 Ashford Dr, Coppell, TX 75019", "signs": 1, "notes": "", "lat": 32.97942, "lon": -96.96552}, {"name": "Alyx Pease", "address": "818 Greenway Dr, Coppell, TX 75019", "signs": 1, "notes": "", "lat": 32.97866, "lon": -96.96546}, {"name": "Kevin & Holly Chaka", "address": "830 Greenway Dr, Coppell, TX 75019", "signs": 1, "notes": "", "lat": 32.97839, "lon": -96.96486}, {"name": "Di-ane Stokes", "address": "346 Greentree Dr, Coppell, TX 75019", "signs": 1, "notes": "", "lat": 32.97824, "lon": -96.96993}], "distance_mi": 1.5, "total_signs": 7, "link": "https://www.google.com/maps/dir/722%20Warwick%20Ln%2C%20Coppell%2C%20TX%2075019/833%20Castle%20Creek%20Dr%2C%20Coppell%2C%20TX%2075019/665%20Raintree%20Cir%2C%20Coppell%2C%20TX%2075019/817%20Ashford%20Dr%2C%20Coppell%2C%20TX%2075019/818%20Greenway%20Dr%2C%20Coppell%2C%20TX%2075019/830%20Greenway%20Dr%2C%20Coppell%2C%20TX%2075019/346%20Greentree%20Dr%2C%20Coppell%2C%20TX%2075019"}, {"letter": "B", "stops": [{"name": "Frank Gasparro", "address": "328 Crooked Tree Ct, Coppell, TX 75019", "signs": 2, "notes": "2 signs", "lat": 32.97897, "lon": -96.98843}, {"name": "Christy Mitchell", "address": "305 N Heartz Rd, Coppell, TX 75019", "signs": 1, "notes": "", "lat": 32.97752, "lon": -96.98965}, {"name": "Niko Leinonen", "address": "341 Kyle Dr, Coppell, TX 75019", "signs": 1, "notes": "", "lat": 32.97761, "lon": -96.98343}, {"name": "Jessica de la Chapelle", "address": "320 Clear Haven Dr, Coppell, TX 75019", "signs": 1, "notes": "", "lat": 32.97877, "lon": -96.97879}, {"name": "Katy McKinney", "address": "331 Still Forest Dr, Coppell, TX 75019", "signs": 1, "notes": "", "lat": 32.9788, "lon": -96.97837}, {"name": "Shae Nault-Hahn", "address": "140 Levee Pl, Coppell, TX 75019", "signs": 1, "notes": "", "lat": 32.9846, "lon": -96.99637}, {"name": "Laura Wortman", "address": "506 Eden St, Coppell, TX 75019", "signs": 1, "notes": "", "lat": 32.98709, "lon": -97.003}], "distance_mi": 1.1, "total_signs": 8, "link": "https://www.google.com/maps/dir/328%20Crooked%20Tree%20Ct%2C%20Coppell%2C%20TX%2075019/305%20N%20Heartz%20Rd%2C%20Coppell%2C%20TX%2075019/341%20Kyle%20Dr%2C%20Coppell%2C%20TX%2075019/320%20Clear%20Haven%20Dr%2C%20Coppell%2C%20TX%2075019/331%20Still%20Forest%20Dr%2C%20Coppell%2C%20TX%2075019/140%20Levee%20Pl%2C%20Coppell%2C%20TX%2075019/506%20Eden%20St%2C%20Coppell%2C%20TX%2075019"}, {"letter": "C", "stops": [{"name": "Mercy Hall", "address": "483 Grace Ln, Coppell, TX 75019", "signs": 3, "notes": "3 signs", "lat": 32.97366, "lon": -96.97999}, {"name": "Chris & Liz Boyd", "address": "346 Pecan Hollow Dr, Coppell, TX 75019", "signs": 1, "notes": "INSTALL", "lat": 32.97329, "lon": -96.98138}, {"name": "Byron Pascoe", "address": "341 Park Valley Dr, Coppell, TX 75019", "signs": 1, "notes": "", "lat": 32.97197, "lon": -96.98196}, {"name": "Christopher Blanton", "address": "108 Trailwood Ln, Coppell, TX 75019", "signs": 1, "notes": "", "lat": 32.97031, "lon": -96.98273}, {"name": "Dominic & Laura Nevarez", "address": "292 Park Valley Dr, Coppell, TX 75019", "signs": 1, "notes": "", "lat": 32.97241, "lon": -96.98525}, {"name": "Truc Skye", "address": "271 Park Valley Dr, Coppell, TX 75019", "signs": 1, "notes": "", "lat": 32.97202, "lon": -96.98656}, {"name": "Heather Thurgood", "address": "150 Pecan Hollow Dr, Coppell, TX 75019", "signs": 1, "notes": "", "lat": 32.97361, "lon": -96.986}, {"name": "Ted Ford", "address": "231 Sleepy Hollow Ln, Coppell, TX 75019", "signs": 1, "notes": "", "lat": 32.97467, "lon": -96.98763}, {"name": "Christopher Bryan / Nina Lovatt", "address": "227 Sleepy Hollow Ln, Coppell, TX 75019", "signs": 1, "notes": "", "lat": 32.97444, "lon": -96.98761}, {"name": "Arun Prasath", "address": "200 Sleepy Hollow Ln, Coppell, TX 75019", "signs": 1, "notes": "", "lat": 32.9731, "lon": -96.98699}], "distance_mi": 1.3, "total_signs": 12, "link": "https://www.google.com/maps/dir/483%20Grace%20Ln%2C%20Coppell%2C%20TX%2075019/346%20Pecan%20Hollow%20Dr%2C%20Coppell%2C%20TX%2075019/341%20Park%20Valley%20Dr%2C%20Coppell%2C%20TX%2075019/108%20Trailwood%20Ln%2C%20Coppell%2C%20TX%2075019/292%20Park%20Valley%20Dr%2C%20Coppell%2C%20TX%2075019/271%20Park%20Valley%20Dr%2C%20Coppell%2C%20TX%2075019/150%20Pecan%20Hollow%20Dr%2C%20Coppell%2C%20TX%2075019/231%20Sleepy%20Hollow%20Ln%2C%20Coppell%2C%20TX%2075019/227%20Sleepy%20Hollow%20Ln%2C%20Coppell%2C%20TX%2075019/200%20Sleepy%20Hollow%20Ln%2C%20Coppell%2C%20TX%2075019"}, {"letter": "D", "stops": [{"name": "Tammie Stewart", "address": "196 Diamond Ridge Dr, Coppell, TX 75019", "signs": 1, "notes": "INSTALL - place where most visible", "lat": 32.97394, "lon": -96.99478}, {"name": "Laura Penton", "address": "128 Summer Pl Dr, Coppell, TX 75019", "signs": 1, "notes": "", "lat": 32.97069, "lon": -97.00117}, {"name": "Pam Johnson", "address": "118 Winding Hollow Ln, Coppell, TX 75019", "signs": 1, "notes": "", "lat": 32.97269, "lon": -97.00824}, {"name": "Debra Fruithandler", "address": "150 Winding Hollow Ln, Coppell, TX 75019", "signs": 1, "notes": "", "lat": 32.97434, "lon": -97.00752}, {"name": "Molly Keith", "address": "257 Whispering Hills Dr, Coppell, TX 75019", "signs": 1, "notes": "", "lat": 32.96321, "lon": -97.0023}, {"name": "Brittany Gauntt", "address": "208 Jeb Ct, Coppell, TX 75019", "signs": 1, "notes": "", "lat": 32.96122, "lon": -96.99974}, {"name": "Mattie Colbert", "address": "118 Blackburn Dr, Coppell, TX 75019", "signs": 1, "notes": "", "lat": 32.96102, "lon": -96.99473}, {"name": "Brent Ball", "address": "322 Devon Dr, Coppell, TX 75019", "signs": 1, "notes": "", "lat": 32.96202, "lon": -96.99476}], "distance_mi": 3.3, "total_signs": 8, "link": "https://www.google.com/maps/dir/196%20Diamond%20Ridge%20Dr%2C%20Coppell%2C%20TX%2075019/128%20Summer%20Pl%20Dr%2C%20Coppell%2C%20TX%2075019/118%20Winding%20Hollow%20Ln%2C%20Coppell%2C%20TX%2075019/150%20Winding%20Hollow%20Ln%2C%20Coppell%2C%20TX%2075019/257%20Whispering%20Hills%20Dr%2C%20Coppell%2C%20TX%2075019/208%20Jeb%20Ct%2C%20Coppell%2C%20TX%2075019/118%20Blackburn%20Dr%2C%20Coppell%2C%20TX%2075019/322%20Devon%20Dr%2C%20Coppell%2C%20TX%2075019"}, {"letter": "E", "stops": [{"name": "Julie Wilke", "address": "716 Michelle Pl, Coppell, TX 75019", "signs": 1, "notes": "", "lat": 32.97743, "lon": -96.97099}, {"name": "Kayley Hager", "address": "732 Parkway Blvd, Coppell, TX 75019", "signs": 1, "notes": "", "lat": 32.97525, "lon": -96.96955}, {"name": "Kristi Walsh", "address": "728 Marlee Cir, Coppell, TX 75019", "signs": 1, "notes": "", "lat": 32.97439, "lon": -96.97031}, {"name": "Elizabeth Minkel", "address": "702 Alendale Dr, Coppell, TX 75019", "signs": 1, "notes": "", "lat": 32.97356, "lon": -96.97218}, {"name": "Courtney Torres", "address": "818 Meadowglen Cir, Coppell, TX 75019", "signs": 1, "notes": "", "lat": 32.9761, "lon": -96.96776}, {"name": "Beth Holland", "address": "220 Meadowglen Cir, Coppell, TX 75019", "signs": 1, "notes": "", "lat": 32.97453, "lon": -96.96577}, {"name": "Melodi Rouhani", "address": "208 Meadowglen Cir, Coppell, TX 75019", "signs": 1, "notes": "INSTALL", "lat": 32.9739, "lon": -96.96579}, {"name": "Hannah Benning", "address": "109 Deann Dr, Coppell, TX 75019", "signs": 1, "notes": "", "lat": 32.97069, "lon": -96.96735}, {"name": "Anna Pease", "address": "928 Westwind Cove, Coppell, TX 75019", "signs": 1, "notes": "", "lat": 32.97201, "lon": -96.96356}], "distance_mi": 1.1, "total_signs": 9, "link": "https://www.google.com/maps/dir/716%20Michelle%20Pl%2C%20Coppell%2C%20TX%2075019/732%20Parkway%20Blvd%2C%20Coppell%2C%20TX%2075019/728%20Marlee%20Cir%2C%20Coppell%2C%20TX%2075019/702%20Alendale%20Dr%2C%20Coppell%2C%20TX%2075019/818%20Meadowglen%20Cir%2C%20Coppell%2C%20TX%2075019/220%20Meadowglen%20Cir%2C%20Coppell%2C%20TX%2075019/208%20Meadowglen%20Cir%2C%20Coppell%2C%20TX%2075019/109%20Deann%20Dr%2C%20Coppell%2C%20TX%2075019/928%20Westwind%20Cove%2C%20Coppell%2C%20TX%2075019"}, {"letter": "F", "stops": [{"name": "Susan Boyles", "address": "217 Simmons Dr, Coppell, TX 75019", "signs": 1, "notes": "INSTALL - between house and sidewalk", "lat": 32.96698, "lon": -96.98522}, {"name": "Joy Smartt", "address": "638 Pheasant Ln, Coppell, TX 75019", "signs": 1, "notes": "", "lat": 32.96606, "lon": -96.97436}, {"name": "Lynn Fields", "address": "205 Mockingbird Ln, Coppell, TX 75019", "signs": 1, "notes": "", "lat": 32.96525, "lon": -96.97053}, {"name": "Tricia Badillo", "address": "144 Hill Dr, Coppell, TX 75019", "signs": 1, "notes": "", "lat": 32.96648, "lon": -96.969}, {"name": "Sherry & Buzz Lupton", "address": "747 Pelican Ln, Coppell, TX 75019", "signs": 1, "notes": "", "lat": 32.95785, "lon": -96.96994}, {"name": "Chris & Amy Kryzak", "address": "838 Pelican Ln, Coppell, TX 75019", "signs": 1, "notes": "", "lat": 32.9562, "lon": -96.96492}, {"name": "Krystle Hernandez", "address": "6404 Sandy Knoll Dr, Coppell, TX 75019", "signs": 1, "notes": "VERIFY - may be outside Coppell", "lat": 32.96658, "lon": -96.98156}, {"name": "Alyssa Moog", "address": "308 Forestcrest Ln, Coppell, TX 75019", "signs": 1, "notes": "", "lat": 32.95716, "lon": -96.98689}], "distance_mi": 3.2, "total_signs": 8, "link": "https://www.google.com/maps/dir/217%20Simmons%20Dr%2C%20Coppell%2C%20TX%2075019/638%20Pheasant%20Ln%2C%20Coppell%2C%20TX%2075019/205%20Mockingbird%20Ln%2C%20Coppell%2C%20TX%2075019/144%20Hill%20Dr%2C%20Coppell%2C%20TX%2075019/747%20Pelican%20Ln%2C%20Coppell%2C%20TX%2075019/838%20Pelican%20Ln%2C%20Coppell%2C%20TX%2075019/6404%20Sandy%20Knoll%20Dr%2C%20Coppell%2C%20TX%2075019/308%20Forestcrest%20Ln%2C%20Coppell%2C%20TX%2075019"}, {"letter": "G", "stops": [{"name": "Sarah Naef", "address": "1048 Creek Crossing, Coppell, TX 75019", "signs": 1, "notes": "", "lat": 32.97735, "lon": -96.95546}, {"name": "Linzey Tweed", "address": "204 Driftwood Dr, Coppell, TX 75019", "signs": 1, "notes": "", "lat": 32.97331, "lon": -96.95783}, {"name": "Jessie Zhang", "address": "1025 Cherrywood Trl, Coppell, TX 75019", "signs": 1, "notes": "", "lat": 32.97123, "lon": -96.95625}, {"name": "Lori Vincenzo", "address": "922 Laguna Dr, Coppell, TX 75019", "signs": 1, "notes": "", "lat": 32.97018, "lon": -96.96233}, {"name": "Alexandra Porcaro", "address": "322 Barclay Ave, Coppell, TX 75019", "signs": 1, "notes": "", "lat": 32.96252, "lon": -96.96188}, {"name": "Karla Moog", "address": "109 Sunrise Dr, Coppell, TX 75019", "signs": 1, "notes": "", "lat": 32.96459, "lon": -96.95049}, {"name": "Ram Prusty", "address": "101 Kimbel Kourt, Coppell, TX 75019", "signs": 1, "notes": "", "lat": 32.970589, "lon": -96.958929}], "distance_mi": 2.3, "total_signs": 7, "link": "https://www.google.com/maps/dir/1048%20Creek%20Crossing%2C%20Coppell%2C%20TX%2075019/204%20Driftwood%20Dr%2C%20Coppell%2C%20TX%2075019/1025%20Cherrywood%20Trl%2C%20Coppell%2C%20TX%2075019/922%20Laguna%20Dr%2C%20Coppell%2C%20TX%2075019/322%20Barclay%20Ave%2C%20Coppell%2C%20TX%2075019/109%20Sunrise%20Dr%2C%20Coppell%2C%20TX%2075019/101%20Kimbel%20Kourt%2C%20Coppell%2C%20TX%2075019"}];
+// ============================================================
+//  PEOPLE — one person per line, easy to read and reassign.
+//  To move someone to a different route, just change their
+//  "route" letter. Everything else rebuilds automatically.
+// ============================================================
+const PEOPLE = [
+  // ---- ROUTE A ----
+  { name: "Barbara Arnt",             route: "A", address: "722 Warwick Ln, Coppell, TX 75019",          lat: 32.99072, lon: -96.97290, signs: 1 },
+  { name: "Jason & Rachel Wilcox",    route: "A", address: "833 Castle Creek Dr, Coppell, TX 75019",     lat: 32.98559, lon: -96.96631, signs: 1 },
+  { name: "Holly Visco",              route: "A", address: "665 Raintree Cir, Coppell, TX 75019",        lat: 32.98328, lon: -96.96926, signs: 1, notes: "INSTALL - anywhere in front yard" },
+  { name: "Brandi Ragland",           route: "A", address: "817 Ashford Dr, Coppell, TX 75019",          lat: 32.97942, lon: -96.96552, signs: 1 },
+  { name: "Alyx Pease",               route: "A", address: "818 Greenway Dr, Coppell, TX 75019",         lat: 32.97866, lon: -96.96546, signs: 1 },
+  { name: "Kevin & Holly Chaka",      route: "A", address: "830 Greenway Dr, Coppell, TX 75019",         lat: 32.97839, lon: -96.96486, signs: 1 },
+  { name: "Di-ane Stokes",            route: "A", address: "346 Greentree Dr, Coppell, TX 75019",        lat: 32.97824, lon: -96.96993, signs: 1 },
+
+  // ---- ROUTE B ----
+  { name: "Frank Gasparro",           route: "B", address: "328 Crooked Tree Ct, Coppell, TX 75019",     lat: 32.97897, lon: -96.98843, signs: 2, notes: "2 signs" },
+  { name: "Christy Mitchell",         route: "B", address: "305 N Heartz Rd, Coppell, TX 75019",         lat: 32.97752, lon: -96.98965, signs: 1 },
+  { name: "Niko Leinonen",            route: "B", address: "341 Kyle Dr, Coppell, TX 75019",             lat: 32.97761, lon: -96.98343, signs: 1 },
+  { name: "Jessica de la Chapelle",   route: "B", address: "320 Clear Haven Dr, Coppell, TX 75019",      lat: 32.97877, lon: -96.97879, signs: 1 },
+  { name: "Katy McKinney",            route: "B", address: "331 Still Forest Dr, Coppell, TX 75019",     lat: 32.97880, lon: -96.97837, signs: 1 },
+  { name: "Shae Nault-Hahn",          route: "B", address: "140 Levee Pl, Coppell, TX 75019",            lat: 32.98460, lon: -96.99637, signs: 1 },
+  { name: "Laura Wortman",            route: "B", address: "506 Eden St, Coppell, TX 75019",             lat: 32.98709, lon: -97.00300, signs: 1 },
+
+  // ---- ROUTE C ----
+  { name: "Mercy Hall",               route: "C", address: "483 Grace Ln, Coppell, TX 75019",            lat: 32.97366, lon: -96.97999, signs: 3, notes: "3 signs" },
+  { name: "Chris & Liz Boyd",         route: "C", address: "346 Pecan Hollow Dr, Coppell, TX 75019",     lat: 32.97329, lon: -96.98138, signs: 1, notes: "INSTALL" },
+  { name: "Byron Pascoe",             route: "C", address: "341 Park Valley Dr, Coppell, TX 75019",      lat: 32.97197, lon: -96.98196, signs: 1 },
+  { name: "Christopher Blanton",      route: "C", address: "108 Trailwood Ln, Coppell, TX 75019",        lat: 32.97031, lon: -96.98273, signs: 1 },
+  { name: "Dominic & Laura Nevarez",  route: "C", address: "292 Park Valley Dr, Coppell, TX 75019",      lat: 32.97241, lon: -96.98525, signs: 1 },
+  { name: "Truc Skye",                route: "C", address: "271 Park Valley Dr, Coppell, TX 75019",      lat: 32.97202, lon: -96.98656, signs: 1 },
+  { name: "Heather Thurgood",         route: "C", address: "150 Pecan Hollow Dr, Coppell, TX 75019",     lat: 32.97361, lon: -96.98600, signs: 1 },
+  { name: "Ted Ford",                 route: "C", address: "231 Sleepy Hollow Ln, Coppell, TX 75019",    lat: 32.97467, lon: -96.98763, signs: 1 },
+  { name: "Christopher Bryan / Nina Lovatt", route: "C", address: "227 Sleepy Hollow Ln, Coppell, TX 75019", lat: 32.97444, lon: -96.98761, signs: 1 },
+  { name: "Arun Prasath",             route: "C", address: "200 Sleepy Hollow Ln, Coppell, TX 75019",    lat: 32.97310, lon: -96.98699, signs: 1 },
+
+  // ---- ROUTE D ----
+  { name: "Tammie Stewart",           route: "D", address: "196 Diamond Ridge Dr, Coppell, TX 75019",    lat: 32.97394, lon: -96.99478, signs: 1, notes: "INSTALL - place where most visible" },
+  { name: "Laura Penton",             route: "D", address: "128 Summer Pl Dr, Coppell, TX 75019",        lat: 32.97069, lon: -97.00117, signs: 1 },
+  { name: "Pam Johnson",              route: "D", address: "118 Winding Hollow Ln, Coppell, TX 75019",   lat: 32.97269, lon: -97.00824, signs: 1 },
+  { name: "Debra Fruithandler",       route: "D", address: "150 Winding Hollow Ln, Coppell, TX 75019",   lat: 32.97434, lon: -97.00752, signs: 1 },
+  { name: "Molly Keith",              route: "D", address: "257 Whispering Hills Dr, Coppell, TX 75019", lat: 32.96321, lon: -97.00230, signs: 1 },
+  { name: "Brittany Gauntt",          route: "D", address: "208 Jeb Ct, Coppell, TX 75019",              lat: 32.96122, lon: -96.99974, signs: 1 },
+  { name: "Mattie Colbert",           route: "D", address: "118 Blackburn Dr, Coppell, TX 75019",        lat: 32.96102, lon: -96.99473, signs: 1 },
+  { name: "Brent Ball",               route: "D", address: "322 Devon Dr, Coppell, TX 75019",            lat: 32.96202, lon: -96.99476, signs: 1 },
+
+  // ---- ROUTE E ----
+  { name: "Julie Wilke",              route: "E", address: "716 Michelle Pl, Coppell, TX 75019",         lat: 32.97743, lon: -96.97099, signs: 1 },
+  { name: "Kayley Hager",             route: "E", address: "732 Parkway Blvd, Coppell, TX 75019",        lat: 32.97525, lon: -96.96955, signs: 1 },
+  { name: "Kristi Walsh",             route: "E", address: "728 Marlee Cir, Coppell, TX 75019",          lat: 32.97439, lon: -96.97031, signs: 1 },
+  { name: "Elizabeth Minkel",         route: "E", address: "702 Alendale Dr, Coppell, TX 75019",         lat: 32.97356, lon: -96.97218, signs: 1 },
+  { name: "Courtney Torres",          route: "E", address: "818 Meadowglen Cir, Coppell, TX 75019",      lat: 32.97610, lon: -96.96776, signs: 1 },
+  { name: "Beth Holland",             route: "E", address: "220 Meadowglen Cir, Coppell, TX 75019",      lat: 32.97453, lon: -96.96577, signs: 1 },
+  { name: "Melodi Rouhani",           route: "E", address: "208 Meadowglen Cir, Coppell, TX 75019",      lat: 32.97390, lon: -96.96579, signs: 1, notes: "INSTALL" },
+  { name: "Hannah Benning",           route: "E", address: "109 Deann Dr, Coppell, TX 75019",            lat: 32.97069, lon: -96.96735, signs: 1 },
+  { name: "Anna Pease",               route: "E", address: "928 Westwind Cove, Coppell, TX 75019",       lat: 32.97201, lon: -96.96356, signs: 1 },
+
+  // ---- ROUTE F ----
+  { name: "Susan Boyles",             route: "F", address: "217 Simmons Dr, Coppell, TX 75019",          lat: 32.96698, lon: -96.98522, signs: 1, notes: "INSTALL - between house and sidewalk" },
+  { name: "Joy Smartt",               route: "F", address: "638 Pheasant Ln, Coppell, TX 75019",         lat: 32.96606, lon: -96.97436, signs: 1 },
+  { name: "Lynn Fields",              route: "F", address: "205 Mockingbird Ln, Coppell, TX 75019",      lat: 32.96525, lon: -96.97053, signs: 1 },
+  { name: "Tricia Badillo",           route: "F", address: "144 Hill Dr, Coppell, TX 75019",             lat: 32.96648, lon: -96.96900, signs: 1 },
+  { name: "Sherry & Buzz Lupton",     route: "F", address: "747 Pelican Ln, Coppell, TX 75019",          lat: 32.95785, lon: -96.96994, signs: 1 },
+  { name: "Chris & Amy Kryzak",       route: "F", address: "838 Pelican Ln, Coppell, TX 75019",          lat: 32.95620, lon: -96.96492, signs: 1 },
+  { name: "Krystle Hernandez",        route: "F", address: "6404 Sandy Knoll Dr, Coppell, TX 75019",     lat: 32.96658, lon: -96.98156, signs: 1, notes: "VERIFY - may be outside Coppell" },
+  { name: "Alyssa Moog",              route: "F", address: "308 Forestcrest Ln, Coppell, TX 75019",      lat: 32.95716, lon: -96.98689, signs: 1 },
+
+  // ---- ROUTE G ----
+  { name: "Sarah Naef",               route: "G", address: "1048 Creek Crossing, Coppell, TX 75019",     lat: 32.97735, lon: -96.95546, signs: 1 },
+  { name: "Linzey Tweed",             route: "G", address: "204 Driftwood Dr, Coppell, TX 75019",        lat: 32.97331, lon: -96.95783, signs: 1 },
+  { name: "Jessie Zhang",             route: "G", address: "1025 Cherrywood Trl, Coppell, TX 75019",     lat: 32.97123, lon: -96.95625, signs: 1 },
+  { name: "Lori Vincenzo",            route: "G", address: "922 Laguna Dr, Coppell, TX 75019",           lat: 32.97018, lon: -96.96233, signs: 1 },
+  { name: "Alexandra Porcaro",        route: "G", address: "322 Barclay Ave, Coppell, TX 75019",         lat: 32.96252, lon: -96.96188, signs: 1 },
+  { name: "Karla Moog",               route: "G", address: "109 Sunrise Dr, Coppell, TX 75019",          lat: 32.96459, lon: -96.95049, signs: 1 },
+  { name: "Ram",                      route: "G", address: "101 Kimbel Kourt, Coppell, TX 75019",        lat: 32.970589, lon: -96.958929, signs: 1 },
+];
+
+// ============================================================
+//  BUILD ROUTES from the PEOPLE array — no manual wiring needed.
+//  Just change a person's "route" letter above and reload.
+// ============================================================
+const ROUTE_LETTERS = [...new Set(PEOPLE.map(p => p.route))].sort();
+
+const ROUTES = ROUTE_LETTERS.map(letter => {
+  const stops = PEOPLE
+    .filter(p => p.route === letter)
+    .map(p => ({
+      name:    p.name,
+      address: p.address,
+      lat:     p.lat,
+      lon:     p.lon,
+      signs:   p.signs || 1,
+      notes:   p.notes || ""
+    }));
+  const total_signs = stops.reduce((s, st) => s + st.signs, 0);
+  const link = 'https://www.google.com/maps/dir/' + stops.map(s => encodeURIComponent(s.address)).join('/');
+  return { letter, stops, total_signs, link, distance_mi: 0 };
+});
+
+// Update header stats
+const totalStops = PEOPLE.length;
+const totalSigns = PEOPLE.reduce((s, p) => s + (p.signs || 1), 0);
+document.getElementById('header-stats').innerHTML =
+  '<div><span>'+ROUTES.length+'</span> Routes</div>' +
+  '<div><span>'+totalStops+'</span> Stops</div>' +
+  '<div><span>'+totalSigns+'</span> Signs</div>';
+
 const COLORS = ['#f85149','#d29922','#3fb950','#58a6ff','#bc8cff','#f778ba','#39d2c0','#f0883e','#7ee787','#79c0ff'];
 const map = L.map('map').setView([32.972, -96.978], 14);
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -68,17 +170,15 @@ L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
 
 const routePolylines = {};
 const routeGroups = {};
-const routeMarkers = {}; // track markers so we can renumber after trip reorder
+const routeMarkers = {};
 
 ROUTES.forEach((route, ri) => {
   const color = COLORS[ri % COLORS.length];
   const group = L.layerGroup().addTo(map);
   routeGroups[route.letter] = group;
-  // Dashed placeholder
   const latlngs = route.stops.map(s => [s.lat, s.lon]);
   const pl = L.polyline(latlngs, { color, weight: 2, opacity: 0.3, dashArray: '4,6' }).addTo(group);
   routePolylines[route.letter] = pl;
-  // Markers
   const markers = [];
   route.stops.forEach((stop, si) => {
     const cm = L.circleMarker([stop.lat, stop.lon], {
@@ -107,10 +207,9 @@ loadDiv.id = 'load-status';
 loadDiv.textContent = 'Optimizing routes via OSRM...';
 document.getElementById('map').appendChild(loadDiv);
 
-// Use OSRM Trip endpoint — solves TSP with real street distances
+// OSRM Trip — solves TSP with real street distances
 async function fetchOSRMTrip(stops) {
   const coords = stops.map(s => s.lon+','+s.lat).join(';');
-  // roundtrip=false lets OSRM pick optimal start and end
   const url = 'https://router.project-osrm.org/trip/v1/driving/'+coords+'?overview=full&geometries=geojson&roundtrip=false&source=any&destination=any';
   try {
     const resp = await fetch(url);
@@ -120,7 +219,6 @@ async function fetchOSRMTrip(stops) {
       const geomCoords = trip.geometry.coordinates.map(c => [c[1],c[0]]);
       const dist = (trip.distance/1609.34).toFixed(1);
       const dur = Math.round(trip.duration/60);
-      // waypoints array tells us the optimized order
       const order = data.waypoints.map(wp => wp.waypoint_index);
       return { coords: geomCoords, distance_mi: dist, duration_min: dur, order };
     }
@@ -177,8 +275,8 @@ async function applyResult(ri, result) {
   if (infoEl) infoEl.textContent = route.total_signs+' signs \u00b7 '+result.distance_mi+' mi \u00b7 ~'+result.duration_min+' min';
 }
 
-// Cache key based on a hash of all stop coordinates so cache busts if data changes
-const CACHE_KEY = 'osrm_v6_' + ROUTES.map(r => r.letter + r.stops.map(s => s.lat+','+s.lon).join(';')).join('|').length;
+// Cache key based on stop coordinates so cache busts if data changes
+const CACHE_KEY = 'osrm_v7_' + ROUTES.map(r => r.letter + r.stops.map(s => s.lat+','+s.lon).join(';')).join('|').length;
 
 function saveCache(allResults) {
   try { localStorage.setItem(CACHE_KEY, JSON.stringify(allResults)); } catch(e) {}
@@ -190,7 +288,6 @@ function loadCache() {
 async function loadAllRoutes() {
   const cached = loadCache();
   if (cached) {
-    // Use cached results instantly
     cached.forEach(({ri, result}) => applyResult(ri, result));
     const el = document.getElementById('load-status');
     el.textContent = '\u2713 Routes loaded (cached)';
@@ -198,13 +295,22 @@ async function loadAllRoutes() {
     setTimeout(() => el.style.display='none', 2000);
     return;
   }
-  // Fire all OSRM requests in parallel
-  const promises = ROUTES.map((route, ri) => fetchOSRMTrip(route.stops).then(result => ({ri, result})));
-  const results = await Promise.all(promises);
-  results.forEach(({ri, result}) => applyResult(ri, result));
-  // Cache for next time
-  saveCache(results);
+
+  // *** FIX: Sequential requests with a small delay to avoid
+  //     hammering the public OSRM server (which rate-limits
+  //     parallel requests and causes the "stuck optimizing" bug). ***
+  const results = [];
   const el = document.getElementById('load-status');
+  for (let ri = 0; ri < ROUTES.length; ri++) {
+    el.textContent = 'Optimizing route ' + ROUTES[ri].letter + ' (' + (ri+1) + '/' + ROUTES.length + ')...';
+    const result = await fetchOSRMTrip(ROUTES[ri].stops);
+    results.push({ ri, result });
+    applyResult(ri, result);
+    // Small delay between requests to be polite to the public server
+    if (ri < ROUTES.length - 1) await new Promise(r => setTimeout(r, 300));
+  }
+
+  saveCache(results);
   el.textContent = '\u2713 Routes optimized (street-level)';
   el.className = 'loading-msg done';
   setTimeout(() => el.style.display='none', 3000);
