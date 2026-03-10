@@ -39,6 +39,7 @@
   .route-link.gmaps{background:#1f6feb}
   .loading-msg{position:absolute;top:10px;right:10px;z-index:1000;background:rgba(13,17,23,.9);border:1px solid #30363d;border-radius:6px;padding:8px 14px;font-size:12px;color:#8b949e}
   .loading-msg.done{color:#3fb950}
+  .loading-msg.fail{color:#f85149}
   .legend{position:absolute;bottom:16px;left:16px;z-index:1000;background:rgba(13,17,23,.92);border:1px solid #30363d;border-radius:6px;padding:10px 14px;font-size:11px}
   .legend-item{display:flex;align-items:center;gap:7px;padding:2px 0}
   .legend-dot{width:12px;height:12px;border-radius:50%}
@@ -60,7 +61,7 @@
 //  To move someone to a different route, just change their
 //  "route" letter. Everything else rebuilds automatically.
 // ============================================================
-const PEOPLE = [
+var PEOPLE = [
   // ---- ROUTE A ----
   { name: "Barbara Arnt",             route: "A", address: "722 Warwick Ln, Coppell, TX 75019",          lat: 32.99072, lon: -96.97290, signs: 1 },
   { name: "Jason & Rachel Wilcox",    route: "A", address: "833 Castle Creek Dr, Coppell, TX 75019",     lat: 32.98559, lon: -96.96631, signs: 1 },
@@ -106,11 +107,11 @@ const PEOPLE = [
   { name: "Kayley Hager",             route: "E", address: "732 Parkway Blvd, Coppell, TX 75019",        lat: 32.97525, lon: -96.96955, signs: 1 },
   { name: "Kristi Walsh",             route: "E", address: "728 Marlee Cir, Coppell, TX 75019",          lat: 32.97439, lon: -96.97031, signs: 1 },
   { name: "Elizabeth Minkel",         route: "E", address: "702 Alendale Dr, Coppell, TX 75019",         lat: 32.97356, lon: -96.97218, signs: 1 },
-  { name: "Courtney Torres",          route: "E", address: "818 Meadowglen Cir, Coppell, TX 75019",      lat: 32.97610, lon: -96.96776, signs: 1 },
-  { name: "Beth Holland",             route: "E", address: "220 Meadowglen Cir, Coppell, TX 75019",      lat: 32.97453, lon: -96.96577, signs: 1 },
-  { name: "Melodi Rouhani",           route: "E", address: "208 Meadowglen Cir, Coppell, TX 75019",      lat: 32.97390, lon: -96.96579, signs: 1, notes: "INSTALL" },
-  { name: "Hannah Benning",           route: "E", address: "109 Deann Dr, Coppell, TX 75019",            lat: 32.97069, lon: -96.96735, signs: 1 },
-  { name: "Anna Pease",               route: "E", address: "928 Westwind Cove, Coppell, TX 75019",       lat: 32.97201, lon: -96.96356, signs: 1 },
+  { name: "Courtney Torres",          route: "E", address: "818 Meadowglen Cir, Coppell, TX 75019",     lat: 32.97610, lon: -96.96776, signs: 1 },
+  { name: "Beth Holland",             route: "E", address: "220 Meadowglen Cir, Coppell, TX 75019",     lat: 32.97453, lon: -96.96577, signs: 1 },
+  { name: "Melodi Rouhani",           route: "E", address: "208 Meadowglen Cir, Coppell, TX 75019",     lat: 32.97390, lon: -96.96579, signs: 1, notes: "INSTALL" },
+  { name: "Hannah Benning",           route: "E", address: "109 Deann Dr, Coppell, TX 75019",           lat: 32.97069, lon: -96.96735, signs: 1 },
+  { name: "Anna Pease",               route: "E", address: "928 Westwind Cove, Coppell, TX 75019",      lat: 32.97201, lon: -96.96356, signs: 1 },
 
   // ---- ROUTE F ----
   { name: "Susan Boyles",             route: "F", address: "217 Simmons Dr, Coppell, TX 75019",          lat: 32.96698, lon: -96.98522, signs: 1, notes: "INSTALL - between house and sidewalk" },
@@ -133,250 +134,335 @@ const PEOPLE = [
 ];
 
 // ============================================================
-//  BUILD ROUTES from the PEOPLE array — no manual wiring needed.
+//  BUILD ROUTES from the PEOPLE array automatically.
 //  Just change a person's "route" letter above and reload.
 // ============================================================
-const ROUTE_LETTERS = [...new Set(PEOPLE.map(p => p.route))].sort();
+var ROUTE_LETTERS = [];
+var _seen = {};
+for (var _i = 0; _i < PEOPLE.length; _i++) {
+  var _r = PEOPLE[_i].route;
+  if (!_seen[_r]) { _seen[_r] = true; ROUTE_LETTERS.push(_r); }
+}
+ROUTE_LETTERS.sort();
 
-const ROUTES = ROUTE_LETTERS.map(letter => {
-  const stops = PEOPLE
-    .filter(p => p.route === letter)
-    .map(p => ({
-      name:    p.name,
-      address: p.address,
-      lat:     p.lat,
-      lon:     p.lon,
-      signs:   p.signs || 1,
-      notes:   p.notes || ""
-    }));
-  const total_signs = stops.reduce((s, st) => s + st.signs, 0);
-  const link = 'https://www.google.com/maps/dir/' + stops.map(s => encodeURIComponent(s.address)).join('/');
-  return { letter, stops, total_signs, link, distance_mi: 0 };
-});
+var ROUTES = [];
+for (var _li = 0; _li < ROUTE_LETTERS.length; _li++) {
+  var letter = ROUTE_LETTERS[_li];
+  var stops = [];
+  var total_signs = 0;
+  for (var _pi = 0; _pi < PEOPLE.length; _pi++) {
+    var p = PEOPLE[_pi];
+    if (p.route === letter) {
+      stops.push({ name: p.name, address: p.address, lat: p.lat, lon: p.lon, signs: p.signs || 1, notes: p.notes || "" });
+      total_signs += (p.signs || 1);
+    }
+  }
+  var link = 'https://www.google.com/maps/dir/' + stops.map(function(s) { return encodeURIComponent(s.address); }).join('/');
+  ROUTES.push({ letter: letter, stops: stops, total_signs: total_signs, link: link, distance_mi: 0 });
+}
 
 // Update header stats
-const totalStops = PEOPLE.length;
-const totalSigns = PEOPLE.reduce((s, p) => s + (p.signs || 1), 0);
+var totalStops = PEOPLE.length;
+var totalSigns = 0;
+for (var _si = 0; _si < PEOPLE.length; _si++) { totalSigns += (PEOPLE[_si].signs || 1); }
 document.getElementById('header-stats').innerHTML =
-  '<div><span>'+ROUTES.length+'</span> Routes</div>' +
-  '<div><span>'+totalStops+'</span> Stops</div>' +
-  '<div><span>'+totalSigns+'</span> Signs</div>';
+  '<div><span>' + ROUTES.length + '</span> Routes</div>' +
+  '<div><span>' + totalStops + '</span> Stops</div>' +
+  '<div><span>' + totalSigns + '</span> Signs</div>';
 
-const COLORS = ['#f85149','#d29922','#3fb950','#58a6ff','#bc8cff','#f778ba','#39d2c0','#f0883e','#7ee787','#79c0ff'];
-const map = L.map('map').setView([32.972, -96.978], 14);
+var COLORS = ['#f85149','#d29922','#3fb950','#58a6ff','#bc8cff','#f778ba','#39d2c0','#f0883e','#7ee787','#79c0ff'];
+var map = L.map('map').setView([32.972, -96.978], 14);
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
   attribution: '\u00a9 OSM', maxZoom: 19
 }).addTo(map);
 
-const routePolylines = {};
-const routeGroups = {};
-const routeMarkers = {};
+var routePolylines = {};
+var routeGroups = {};
+var routeMarkers = {};
 
-ROUTES.forEach((route, ri) => {
-  const color = COLORS[ri % COLORS.length];
-  const group = L.layerGroup().addTo(map);
-  routeGroups[route.letter] = group;
-  const latlngs = route.stops.map(s => [s.lat, s.lon]);
-  const pl = L.polyline(latlngs, { color, weight: 2, opacity: 0.3, dashArray: '4,6' }).addTo(group);
-  routePolylines[route.letter] = pl;
-  const markers = [];
-  route.stops.forEach((stop, si) => {
-    const cm = L.circleMarker([stop.lat, stop.lon], {
-      radius: 8, fillColor: color, color: '#0d1117', weight: 2, opacity: 1, fillOpacity: 0.9
-    }).bindPopup(
-      '<b style="font-size:12px;color:#333">Route '+route.letter+' \u00b7 #'+(si+1)+'</b><br>'+
-      '<b style="color:#333">'+stop.name+'</b><br><span style="color:#555">'+stop.address+'</span>'+
-      (stop.signs>1?'<br><span style="color:#7c3aed;font-weight:600">'+stop.signs+' signs</span>':'')+
-      (stop.notes?'<br><span style="color:#b45309;font-weight:600">'+stop.notes+'</span>':'')
-    ).addTo(group);
-    const numMarker = L.marker([stop.lat, stop.lon], {
-      icon: L.divIcon({
-        html: '<div style="width:16px;height:16px;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:800;color:#fff">'+(si+1)+'</div>',
-        className:'', iconSize:[16,16], iconAnchor:[8,8]
-      }), interactive: false
-    }).addTo(group);
-    markers.push({ circle: cm, number: numMarker, stop });
-  });
-  routeMarkers[route.letter] = markers;
-});
+for (var ri = 0; ri < ROUTES.length; ri++) {
+  (function(ri) {
+    var route = ROUTES[ri];
+    var color = COLORS[ri % COLORS.length];
+    var group = L.layerGroup().addTo(map);
+    routeGroups[route.letter] = group;
+    var latlngs = [];
+    for (var si = 0; si < route.stops.length; si++) { latlngs.push([route.stops[si].lat, route.stops[si].lon]); }
+    var pl = L.polyline(latlngs, { color: color, weight: 2, opacity: 0.3, dashArray: '4,6' }).addTo(group);
+    routePolylines[route.letter] = pl;
+    var markers = [];
+    for (var si = 0; si < route.stops.length; si++) {
+      (function(si) {
+        var stop = route.stops[si];
+        var cm = L.circleMarker([stop.lat, stop.lon], {
+          radius: 8, fillColor: color, color: '#0d1117', weight: 2, opacity: 1, fillOpacity: 0.9
+        }).bindPopup(
+          '<b style="font-size:12px;color:#333">Route ' + route.letter + ' \u00b7 #' + (si+1) + '</b><br>' +
+          '<b style="color:#333">' + stop.name + '</b><br><span style="color:#555">' + stop.address + '</span>' +
+          (stop.signs > 1 ? '<br><span style="color:#7c3aed;font-weight:600">' + stop.signs + ' signs</span>' : '') +
+          (stop.notes ? '<br><span style="color:#b45309;font-weight:600">' + stop.notes + '</span>' : '')
+        ).addTo(group);
+        var numMarker = L.marker([stop.lat, stop.lon], {
+          icon: L.divIcon({
+            html: '<div style="width:16px;height:16px;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:800;color:#fff">' + (si+1) + '</div>',
+            className: '', iconSize: [16,16], iconAnchor: [8,8]
+          }), interactive: false
+        }).addTo(group);
+        markers.push({ circle: cm, number: numMarker, stop: stop });
+      })(si);
+    }
+    routeMarkers[route.letter] = markers;
+  })(ri);
+}
 
 // Loading indicator
-const loadDiv = document.createElement('div');
+var loadDiv = document.createElement('div');
 loadDiv.className = 'loading-msg';
 loadDiv.id = 'load-status';
 loadDiv.textContent = 'Optimizing routes via OSRM...';
 document.getElementById('map').appendChild(loadDiv);
 
-// OSRM Trip — solves TSP with real street distances
-async function fetchOSRMTrip(stops) {
-  const coords = stops.map(s => s.lon+','+s.lat).join(';');
-  const url = 'https://router.project-osrm.org/trip/v1/driving/'+coords+'?overview=full&geometries=geojson&roundtrip=false&source=any&destination=any';
-  try {
-    const resp = await fetch(url);
-    const data = await resp.json();
-    if (data.code==='Ok' && data.trips && data.trips[0]) {
-      const trip = data.trips[0];
-      const geomCoords = trip.geometry.coordinates.map(c => [c[1],c[0]]);
-      const dist = (trip.distance/1609.34).toFixed(1);
-      const dur = Math.round(trip.duration/60);
+// ============================================================
+//  OSRM ROUTING with retry
+// ============================================================
+function fetchWithRetry(url, retries, delay) {
+  return new Promise(function(resolve, reject) {
+    var xhr = new XMLHttpRequest();
+    xhr.open('GET', url);
+    xhr.onload = function() {
+      if (xhr.status >= 200 && xhr.status < 300) {
+        try { resolve(JSON.parse(xhr.responseText)); }
+        catch(e) { reject(e); }
+      } else if (retries > 0) {
+        setTimeout(function() {
+          fetchWithRetry(url, retries - 1, delay * 2).then(resolve).catch(reject);
+        }, delay);
+      } else {
+        reject(new Error('HTTP ' + xhr.status));
+      }
+    };
+    xhr.onerror = function() {
+      if (retries > 0) {
+        setTimeout(function() {
+          fetchWithRetry(url, retries - 1, delay * 2).then(resolve).catch(reject);
+        }, delay);
+      } else {
+        reject(new Error('Network error'));
+      }
+    };
+    xhr.send();
+  });
+}
+
+function fetchOSRMTrip(stops) {
+  var coords = '';
+  for (var i = 0; i < stops.length; i++) {
+    if (i > 0) coords += ';';
+    coords += stops[i].lon + ',' + stops[i].lat;
+  }
+  var url = 'https://router.project-osrm.org/trip/v1/driving/' + coords + '?overview=full&geometries=geojson&roundtrip=false&source=any&destination=any';
+  return fetchWithRetry(url, 3, 1500).then(function(data) {
+    if (data.code === 'Ok' && data.trips && data.trips[0]) {
+      var trip = data.trips[0];
+      var geomCoords = [];
+      for (var i = 0; i < trip.geometry.coordinates.length; i++) {
+        var c = trip.geometry.coordinates[i];
+        geomCoords.push([c[1], c[0]]);
+      }
+      var dist = (trip.distance / 1609.34).toFixed(1);
+      var dur = Math.round(trip.duration / 60);
       // waypoints[i].waypoint_index = position-in-trip for input point i
       // We need: order[tripPosition] = inputIndex
-      const order = new Array(stops.length);
-      data.waypoints.forEach((wp, inputIdx) => {
-        order[wp.waypoint_index] = inputIdx;
-      });
-      return { coords: geomCoords, distance_mi: dist, duration_min: dur, order };
+      var order = new Array(stops.length);
+      for (var i = 0; i < data.waypoints.length; i++) {
+        order[data.waypoints[i].waypoint_index] = i;
+      }
+      return { coords: geomCoords, distance_mi: dist, duration_min: dur, order: order };
     }
-  } catch(e) { console.error('OSRM trip error:', e); }
-  return null;
+    return null;
+  }).catch(function(err) {
+    console.error('OSRM trip error:', err);
+    return null;
+  });
 }
 
 function applyResult(ri, result) {
-  const route = ROUTES[ri];
-  const color = COLORS[ri % COLORS.length];
+  var route = ROUTES[ri];
+  var color = COLORS[ri % COLORS.length];
   if (!result) {
-    const infoEl = document.getElementById('info-'+route.letter);
-    if (infoEl) infoEl.textContent = route.total_signs+' signs · routing failed, using straight lines';
+    var infoEl = document.getElementById('info-' + route.letter);
+    if (infoEl) infoEl.textContent = route.total_signs + ' signs \u00b7 routing failed';
     return;
   }
   try {
-  routeGroups[route.letter].removeLayer(routePolylines[route.letter]);
-  routePolylines[route.letter] = L.polyline(result.coords, {
-    color, weight: 4, opacity: 0.75
-  }).addTo(routeGroups[route.letter]);
-  const oldStops = [...route.stops];
-  const newStops = result.order.map(i => oldStops[i]);
-  route.stops = newStops;
-  const markers = routeMarkers[route.letter];
-  const oldMarkers = [...markers];
-  result.order.forEach((origIdx, newIdx) => {
-    const m = oldMarkers[origIdx];
-    routeGroups[route.letter].removeLayer(m.number);
-    m.number = L.marker([m.stop.lat, m.stop.lon], {
-      icon: L.divIcon({
-        html: '<div style="width:16px;height:16px;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:800;color:#fff">'+(newIdx+1)+'</div>',
-        className:'', iconSize:[16,16], iconAnchor:[8,8]
-      }), interactive: false
+    routeGroups[route.letter].removeLayer(routePolylines[route.letter]);
+    routePolylines[route.letter] = L.polyline(result.coords, {
+      color: color, weight: 4, opacity: 0.75
     }).addTo(routeGroups[route.letter]);
-    m.circle.setPopupContent(
-      '<b style="font-size:12px;color:#333">Route '+route.letter+' \u00b7 #'+(newIdx+1)+'</b><br>'+
-      '<b style="color:#333">'+m.stop.name+'</b><br><span style="color:#555">'+m.stop.address+'</span>'+
-      (m.stop.signs>1?'<br><span style="color:#7c3aed;font-weight:600">'+m.stop.signs+' signs</span>':'')+
-      (m.stop.notes?'<br><span style="color:#b45309;font-weight:600">'+m.stop.notes+'</span>':'')
-    );
-  });
-  const gmLink = 'https://www.google.com/maps/dir/' + newStops.map(s => encodeURIComponent(s.address)).join('/');
-  route.link = gmLink;
-  const gmEl = document.getElementById('gmaps-'+route.letter);
-  if (gmEl) gmEl.href = gmLink;
-  const stopsEl = document.getElementById('stops-'+route.letter);
-  if (stopsEl) {
-    stopsEl.innerHTML = newStops.map((s, si) => {
-      let extra = '';
-      if (s.signs>1) extra += ' <span class="stop-signs">(x'+s.signs+')</span>';
-      if (s.notes) extra += ' <span class="stop-notes">['+s.notes+']</span>';
-      return '<div class="stop"><span class="stop-num">'+(si+1)+'.</span><div><span class="stop-name">'+s.name+'</span><br>'+s.address+extra+'</div></div>';
-    }).join('') +
-    '<div class="route-actions"><a class="route-link gmaps" id="gmaps-'+route.letter+'" href="'+gmLink+'" target="_blank">\ud83d\udccd Google Maps</a></div>';
-  }
-  route.osrm_dist = result.distance_mi;
-  route.osrm_dur = result.duration_min;
-  const infoEl = document.getElementById('info-'+route.letter);
-  if (infoEl) infoEl.textContent = route.total_signs+' signs \u00b7 '+result.distance_mi+' mi \u00b7 ~'+result.duration_min+' min';
+    var oldStops = route.stops.slice();
+    var newStops = [];
+    for (var i = 0; i < result.order.length; i++) { newStops.push(oldStops[result.order[i]]); }
+    route.stops = newStops;
+    var oldMarkers = routeMarkers[route.letter].slice();
+    for (var newIdx = 0; newIdx < result.order.length; newIdx++) {
+      (function(origIdx, newIdx) {
+        var m = oldMarkers[origIdx];
+        routeGroups[route.letter].removeLayer(m.number);
+        m.number = L.marker([m.stop.lat, m.stop.lon], {
+          icon: L.divIcon({
+            html: '<div style="width:16px;height:16px;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:800;color:#fff">' + (newIdx+1) + '</div>',
+            className: '', iconSize: [16,16], iconAnchor: [8,8]
+          }), interactive: false
+        }).addTo(routeGroups[route.letter]);
+        m.circle.setPopupContent(
+          '<b style="font-size:12px;color:#333">Route ' + route.letter + ' \u00b7 #' + (newIdx+1) + '</b><br>' +
+          '<b style="color:#333">' + m.stop.name + '</b><br><span style="color:#555">' + m.stop.address + '</span>' +
+          (m.stop.signs > 1 ? '<br><span style="color:#7c3aed;font-weight:600">' + m.stop.signs + ' signs</span>' : '') +
+          (m.stop.notes ? '<br><span style="color:#b45309;font-weight:600">' + m.stop.notes + '</span>' : '')
+        );
+      })(result.order[newIdx], newIdx);
+    }
+    var gmLink = 'https://www.google.com/maps/dir/';
+    for (var i = 0; i < newStops.length; i++) {
+      if (i > 0) gmLink += '/';
+      gmLink += encodeURIComponent(newStops[i].address);
+    }
+    route.link = gmLink;
+    var gmEl = document.getElementById('gmaps-' + route.letter);
+    if (gmEl) gmEl.href = gmLink;
+    var stopsEl = document.getElementById('stops-' + route.letter);
+    if (stopsEl) {
+      var html = '';
+      for (var i = 0; i < newStops.length; i++) {
+        var s = newStops[i];
+        var extra = '';
+        if (s.signs > 1) extra += ' <span class="stop-signs">(x' + s.signs + ')</span>';
+        if (s.notes) extra += ' <span class="stop-notes">[' + s.notes + ']</span>';
+        html += '<div class="stop"><span class="stop-num">' + (i+1) + '.</span><div><span class="stop-name">' + s.name + '</span><br>' + s.address + extra + '</div></div>';
+      }
+      html += '<div class="route-actions"><a class="route-link gmaps" id="gmaps-' + route.letter + '" href="' + gmLink + '" target="_blank">\ud83d\udccd Google Maps</a></div>';
+      stopsEl.innerHTML = html;
+    }
+    route.osrm_dist = result.distance_mi;
+    route.osrm_dur = result.duration_min;
+    var infoEl2 = document.getElementById('info-' + route.letter);
+    if (infoEl2) infoEl2.textContent = route.total_signs + ' signs \u00b7 ' + result.distance_mi + ' mi \u00b7 ~' + result.duration_min + ' min';
   } catch(e) {
-    console.error('applyResult error for route '+route.letter+':', e);
-    const infoEl = document.getElementById('info-'+route.letter);
-    if (infoEl) infoEl.textContent = route.total_signs+' signs · error applying route';
+    console.error('applyResult error for route ' + route.letter + ':', e);
+    var infoEl3 = document.getElementById('info-' + route.letter);
+    if (infoEl3) infoEl3.textContent = route.total_signs + ' signs \u00b7 error rendering route';
   }
 }
 
-// Cache key based on stop coordinates so cache busts if data changes
-const CACHE_KEY = 'osrm_v7_' + ROUTES.map(r => r.letter + r.stops.map(s => s.lat+','+s.lon).join(';')).join('|').length;
-
+// Cache
+var CACHE_KEY = 'osrm_v8_' + ROUTES.length + '_' + PEOPLE.length;
 function saveCache(allResults) {
   try { localStorage.setItem(CACHE_KEY, JSON.stringify(allResults)); } catch(e) {}
 }
 function loadCache() {
-  try { const c = localStorage.getItem(CACHE_KEY); return c ? JSON.parse(c) : null; } catch(e) { return null; }
+  try { var c = localStorage.getItem(CACHE_KEY); return c ? JSON.parse(c) : null; } catch(e) { return null; }
 }
 
-async function loadAllRoutes() {
-  const cached = loadCache();
-  if (cached) {
-    cached.forEach(({ri, result}) => applyResult(ri, result));
-    const el = document.getElementById('load-status');
+function loadAllRoutes() {
+  var cached = loadCache();
+  if (cached && cached.length === ROUTES.length) {
+    for (var i = 0; i < cached.length; i++) { applyResult(cached[i].ri, cached[i].result); }
+    var el = document.getElementById('load-status');
     el.textContent = '\u2713 Routes loaded (cached)';
     el.className = 'loading-msg done';
-    setTimeout(() => el.style.display='none', 2000);
+    setTimeout(function() { el.style.display = 'none'; }, 2000);
     return;
   }
 
-  // *** FIX: Sequential requests with a small delay to avoid
-  //     hammering the public OSRM server (which rate-limits
-  //     parallel requests and causes the "stuck optimizing" bug). ***
-  const results = [];
-  const el = document.getElementById('load-status');
-  for (let ri = 0; ri < ROUTES.length; ri++) {
-    el.textContent = 'Optimizing route ' + ROUTES[ri].letter + ' (' + (ri+1) + '/' + ROUTES.length + ')...';
-    const result = await fetchOSRMTrip(ROUTES[ri].stops);
-    results.push({ ri, result });
-    applyResult(ri, result);
-    // Small delay between requests to be polite to the public server
-    if (ri < ROUTES.length - 1) await new Promise(r => setTimeout(r, 300));
-  }
+  // Process routes one at a time with delay
+  var results = [];
+  var el = document.getElementById('load-status');
+  var idx = 0;
 
-  saveCache(results);
-  el.textContent = '\u2713 Routes optimized (street-level)';
-  el.className = 'loading-msg done';
-  setTimeout(() => el.style.display='none', 3000);
+  function processNext() {
+    if (idx >= ROUTES.length) {
+      var anySuccess = false;
+      for (var i = 0; i < results.length; i++) { if (results[i].result) { anySuccess = true; break; } }
+      if (anySuccess) {
+        saveCache(results);
+        el.textContent = '\u2713 Routes optimized (street-level)';
+        el.className = 'loading-msg done';
+      } else {
+        el.textContent = '\u2717 OSRM server unavailable \u2014 try refreshing later';
+        el.className = 'loading-msg fail';
+      }
+      setTimeout(function() { el.style.display = 'none'; }, 5000);
+      return;
+    }
+    el.textContent = 'Optimizing route ' + ROUTES[idx].letter + ' (' + (idx+1) + '/' + ROUTES.length + ')...';
+    var currentIdx = idx;
+    fetchOSRMTrip(ROUTES[currentIdx].stops).then(function(result) {
+      results.push({ ri: currentIdx, result: result });
+      applyResult(currentIdx, result);
+      idx++;
+      setTimeout(processNext, 500);
+    });
+  }
+  processNext();
 }
 
 // Build sidebar
-const sb = document.getElementById('sidebar');
-ROUTES.forEach((route, ri) => {
-  const color = COLORS[ri % COLORS.length];
-  const card = document.createElement('div');
-  card.className = 'route-card';
-  card.id = 'card-'+route.letter;
-  const stopsHtml = route.stops.map((s, si) => {
-    let extra = '';
-    if (s.signs>1) extra += ' <span class="stop-signs">(x'+s.signs+')</span>';
-    if (s.notes) extra += ' <span class="stop-notes">['+s.notes+']</span>';
-    return '<div class="stop"><span class="stop-num">'+(si+1)+'.</span><div><span class="stop-name">'+s.name+'</span><br>'+s.address+extra+'</div></div>';
-  }).join('');
-  card.innerHTML =
-    '<div class="route-header" onclick="toggleRoute(\''+route.letter+'\')">'+
-      '<div class="route-badge" style="background:'+color+'">'+route.letter+'</div>'+
-      '<div class="route-meta"><div class="title">Route '+route.letter+' \u2014 '+route.stops.length+' stops</div>'+
-      '<div class="info" id="info-'+route.letter+'">'+route.total_signs+' signs \u00b7 optimizing...</div></div>'+
-      '<div class="route-toggle">\u25BC</div></div>'+
-    '<div class="route-stops" id="stops-'+route.letter+'">'+stopsHtml+
-      '<div class="route-actions">'+
-        '<a class="route-link gmaps" id="gmaps-'+route.letter+'" href="'+route.link+'" target="_blank">\ud83d\udccd Google Maps</a>'+
-      '</div></div>';
-  sb.appendChild(card);
-});
+var sb = document.getElementById('sidebar');
+for (var ri = 0; ri < ROUTES.length; ri++) {
+  (function(ri) {
+    var route = ROUTES[ri];
+    var color = COLORS[ri % COLORS.length];
+    var card = document.createElement('div');
+    card.className = 'route-card';
+    card.id = 'card-' + route.letter;
+    var stopsHtml = '';
+    for (var si = 0; si < route.stops.length; si++) {
+      var s = route.stops[si];
+      var extra = '';
+      if (s.signs > 1) extra += ' <span class="stop-signs">(x' + s.signs + ')</span>';
+      if (s.notes) extra += ' <span class="stop-notes">[' + s.notes + ']</span>';
+      stopsHtml += '<div class="stop"><span class="stop-num">' + (si+1) + '.</span><div><span class="stop-name">' + s.name + '</span><br>' + s.address + extra + '</div></div>';
+    }
+    card.innerHTML =
+      '<div class="route-header" onclick="toggleRoute(\'' + route.letter + '\')">' +
+        '<div class="route-badge" style="background:' + color + '">' + route.letter + '</div>' +
+        '<div class="route-meta"><div class="title">Route ' + route.letter + ' \u2014 ' + route.stops.length + ' stops</div>' +
+        '<div class="info" id="info-' + route.letter + '">' + route.total_signs + ' signs \u00b7 optimizing...</div></div>' +
+        '<div class="route-toggle">\u25BC</div></div>' +
+      '<div class="route-stops" id="stops-' + route.letter + '">' + stopsHtml +
+        '<div class="route-actions">' +
+          '<a class="route-link gmaps" id="gmaps-' + route.letter + '" href="' + route.link + '" target="_blank">\ud83d\udccd Google Maps</a>' +
+        '</div></div>';
+    sb.appendChild(card);
+  })(ri);
+}
 
 function toggleRoute(letter) {
-  const card = document.getElementById('card-'+letter);
-  const wasOpen = card.classList.contains('open');
-  document.querySelectorAll('.route-card').forEach(c => c.classList.remove('open'));
+  var card = document.getElementById('card-' + letter);
+  var wasOpen = card.classList.contains('open');
+  var cards = document.querySelectorAll('.route-card');
+  for (var i = 0; i < cards.length; i++) { cards[i].classList.remove('open'); }
   if (!wasOpen) {
     card.classList.add('open');
-    const pl = routePolylines[letter];
-    try { map.fitBounds(pl.getBounds(), {padding:[40,40]}); } catch(e) {
-      const route = ROUTES.find(r => r.letter===letter);
-      map.fitBounds(L.latLngBounds(route.stops.map(s=>[s.lat,s.lon])),{padding:[40,40]});
+    var pl = routePolylines[letter];
+    try { map.fitBounds(pl.getBounds(), {padding: [40,40]}); } catch(e) {
+      var route;
+      for (var i = 0; i < ROUTES.length; i++) { if (ROUTES[i].letter === letter) { route = ROUTES[i]; break; } }
+      var bounds = [];
+      for (var i = 0; i < route.stops.length; i++) { bounds.push([route.stops[i].lat, route.stops[i].lon]); }
+      map.fitBounds(L.latLngBounds(bounds), {padding: [40,40]});
     }
   }
 }
 
-const legend = L.control({position:'bottomleft'});
+var legend = L.control({position: 'bottomleft'});
 legend.onAdd = function() {
-  const div = L.DomUtil.create('div','legend');
-  div.innerHTML = ROUTES.map((r,i) =>
-    '<div class="legend-item"><div class="legend-dot" style="background:'+COLORS[i%COLORS.length]+'"></div>Route '+r.letter+' ('+r.stops.length+')</div>'
-  ).join('');
+  var div = L.DomUtil.create('div', 'legend');
+  var html = '';
+  for (var i = 0; i < ROUTES.length; i++) {
+    html += '<div class="legend-item"><div class="legend-dot" style="background:' + COLORS[i % COLORS.length] + '"></div>Route ' + ROUTES[i].letter + ' (' + ROUTES[i].stops.length + ')</div>';
+  }
+  div.innerHTML = html;
   return div;
 };
 legend.addTo(map);
