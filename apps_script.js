@@ -82,8 +82,6 @@ function handleAction(data) {
       case 'deleteRoute':   result = deleteRoute(data.letter);                           break;
       case 'updateRoute':   result = updateRoute(data.letter, data.fields);              break;
       case 'bulkImport':    result = bulkImport(data.routes);                            break;
-      case 'heartbeat':     result = heartbeat(data.name, data.sessionId);               break;
-      case 'getPresence':   result = getPresence();                                      break;
       default:              result = { error: 'Unknown action: ' + action };
     }
 
@@ -324,61 +322,4 @@ function bulkImport(routes) {
 
   SpreadsheetApp.flush();
   return { success: true, routes: routes.length, stops: routes.reduce((sum, r) => sum + r.stops.length, 0) };
-}
-
-// ─── Presence ───
-
-function heartbeat(name, sessionId) {
-  const sheet = getSheet('presence');
-
-  // Bootstrap headers on first use
-  if (sheet.getLastRow() === 0) {
-    sheet.appendRow(['session_id', 'name', 'last_seen']);
-  }
-
-  const allRows = sheet.getDataRange().getValues();
-  const hdrs = allRows[0];
-  const sidCol = hdrs.indexOf('session_id');
-  const nameCol = hdrs.indexOf('name');
-  const seenCol = hdrs.indexOf('last_seen');
-  const now = new Date().toISOString();
-
-  // Update existing row if session already registered
-  for (let i = 1; i < allRows.length; i++) {
-    if (String(allRows[i][sidCol]) === String(sessionId)) {
-      sheet.getRange(i + 1, nameCol + 1).setValue(name || 'Unknown');
-      sheet.getRange(i + 1, seenCol + 1).setValue(now);
-      SpreadsheetApp.flush();
-      return { success: true };
-    }
-  }
-
-  // New session row
-  sheet.appendRow([sessionId, name || 'Unknown', now]);
-  SpreadsheetApp.flush();
-  return { success: true };
-}
-
-function getPresence() {
-  const sheet = getSheet('presence');
-  if (sheet.getLastRow() < 2) return { users: [] };
-
-  const allRows = sheet.getDataRange().getValues();
-  const hdrs = allRows[0];
-  const sidCol = hdrs.indexOf('session_id');
-  const nameCol = hdrs.indexOf('name');
-  const seenCol = hdrs.indexOf('last_seen');
-
-  // 90-second activity window
-  const cutoffMs = Date.now() - 90 * 1000;
-
-  const users = allRows.slice(1)
-    .filter(row => row[seenCol] && new Date(row[seenCol]).getTime() >= cutoffMs)
-    .map(row => ({
-      sessionId: String(row[sidCol]),
-      name: row[nameCol] || 'Unknown',
-      last_seen: row[seenCol]
-    }));
-
-  return { users };
 }

@@ -26,9 +26,7 @@ const SheetsAPI = {
   async addRoute(letter, color, vol)  { return this._get({ action: 'addRoute', letter, color, volunteer: vol }); },
   async deleteRoute(letter)           { return this._get({ action: 'deleteRoute', letter }); },
   async updateRoute(letter, fields)   { return this._get({ action: 'updateRoute', letter, fields }); },
-  async bulkImport(routes)            { return this._get({ action: 'bulkImport', routes }); },
-  async heartbeat(name, sessionId)    { return this._get({ action: 'heartbeat', name, sessionId }); },
-  async getPresence()                 { return this._get({ action: 'getPresence' }); }
+  async bulkImport(routes)            { return this._get({ action: 'bulkImport', routes }); }
 };
 
 // ─── Nominatim Geocoding ───

@@ -100,7 +100,7 @@ const UI = {
           <input type="checkbox" id="toggle-delivered" checked> Delivered
         </label>
         <button class="btn btn-admin" id="admin-btn">⚙ Admin</button>
-        <button class="btn" id="map-toggle-btn" onclick="UI.toggleMap()" title="Show/hide map">🗺 Map</button>
+        <button class="btn" id="map-toggle-btn" onclick="UI.toggleMap()" title="Show/hide map">🗺 Hide Map</button>
       </div>
       <div class="stats" id="stats">
         <span id="sync-indicator"></span>

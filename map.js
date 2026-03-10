@@ -11,8 +11,6 @@ const MapModule = {
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       attribution: '\u00a9 OSM', maxZoom: 19
     }).addTo(this.map);
-    // Let flexbox settle before Leaflet measures the container
-    setTimeout(() => this.map.invalidateSize(), 100);
   },
 
   clearAll() {
@@ -72,7 +70,7 @@ const MapModule = {
         popupHtml += `<div style="margin-top:6px;padding:4px 8px;background:#2ea043;color:#fff;border-radius:4px;font-size:11px;font-weight:600;display:inline-block">\u2713 Delivered</div>`;
         if (stop.delivered_date) {
           const d = new Date(stop.delivered_date);
-          popupHtml += `<div style="font-size:10px;color:#888;margin-top:2px">${d.toLocaleString('en-US', { timeZone: 'America/Chicago', month: 'numeric', day: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true })} CT</div>`;
+          popupHtml += `<div style="font-size:10px;color:#888;margin-top:2px">${d.toLocaleDateString()} ${d.toLocaleTimeString()}</div>`;
         }
         if (stop.delivered_by) popupHtml += `<div style="font-size:10px;color:#888">by ${stop.delivered_by}</div>`;
       }
@@ -132,12 +130,12 @@ const MapModule = {
   },
 
   addLegend(routes) {
+    // Remove existing legend
     if (this._legend) this._legend.remove();
     const legend = L.control({ position: 'bottomleft' });
     legend.onAdd = () => {
       const div = L.DomUtil.create('div');
-      div.className = 'map-legend';
-      div.style.cssText = 'background:rgba(13,17,23,.92);border:1px solid #30363d;border-radius:6px;padding:10px 14px;font-size:11px;font-family:"DM Sans",sans-serif;color:#c9d1d9;margin-bottom:8px;margin-left:8px';
+      div.style.cssText = 'background:rgba(13,17,23,.92);border:1px solid #30363d;border-radius:6px;padding:10px 14px;font-size:11px;font-family:"DM Sans",sans-serif;color:#c9d1d9';
       div.innerHTML = routes.map((r, i) => {
         const c = r.color || CONFIG.ROUTE_COLORS[i % CONFIG.ROUTE_COLORS.length];
         const delivered = r.stops.filter(s => s.delivered).length;
