@@ -511,12 +511,14 @@ body {
 @media (max-width: 768px) {
   #map-toggle-btn { display: inline-flex; }
   .container { flex-direction: column; }
-  #map { height: 42vh; height: 42dvh; transition: height .25s ease; flex-shrink: 0; }
-  #map.map-hidden { height: 0 !important; overflow: hidden; }
+  #map { height: 42vh; height: 42dvh; transition: height .3s ease; flex-shrink: 0; }
+  #map.map-hidden { height: 0 !important; min-height: 0 !important; overflow: hidden !important; }
   #sidebar { width: 100%; flex: 1; overflow-y: auto; padding-bottom: 80px; min-height: 0; }
   .header-controls { margin-left: 0; }
   .modal { width: 95vw; }
   #volunteer-name-input { width: 90px; }
+  /* Hide legend on mobile via CSS — bulletproof regardless of JS timing */
+  .map-legend { display: none !important; }
 }
 
 /* ─── Presence Avatars ─── */

@@ -888,14 +888,17 @@ const UI = {
     const btn = document.getElementById('map-toggle-btn');
     const isHidden = mapEl.classList.toggle('map-hidden');
     if (isHidden) {
-      mapEl.style.height = '0';
+      mapEl.style.setProperty('height', '0', 'important');
       mapEl.style.overflow = 'hidden';
       btn.textContent = '🗺 Show Map';
     } else {
-      mapEl.style.height = '';
+      mapEl.style.removeProperty('height');
       mapEl.style.overflow = '';
       btn.textContent = '🗺 Map';
-      setTimeout(() => MapModule.map.invalidateSize(), 50);
+      // Give browser a frame to reflow before Leaflet measures
+      requestAnimationFrame(() => {
+        setTimeout(() => MapModule.map.invalidateSize(), 50);
+      });
     }
   },
 

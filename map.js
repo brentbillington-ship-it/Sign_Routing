@@ -132,13 +132,11 @@ const MapModule = {
   },
 
   addLegend(routes) {
-    // Remove existing legend
     if (this._legend) this._legend.remove();
-    // Don't show legend on mobile — takes too much space
-    if (window.innerWidth <= 768) return;
     const legend = L.control({ position: 'bottomleft' });
     legend.onAdd = () => {
       const div = L.DomUtil.create('div');
+      div.className = 'map-legend';
       div.style.cssText = 'background:rgba(13,17,23,.92);border:1px solid #30363d;border-radius:6px;padding:10px 14px;font-size:11px;font-family:"DM Sans",sans-serif;color:#c9d1d9;margin-bottom:8px;margin-left:8px';
       div.innerHTML = routes.map((r, i) => {
         const c = r.color || CONFIG.ROUTE_COLORS[i % CONFIG.ROUTE_COLORS.length];
