@@ -890,9 +890,14 @@ const UI = {
     const isHidden = wrap.classList.toggle('map-hidden');
     btn.textContent = isHidden ? '🗺 Show Map' : '🗺 Hide Map';
     if (!isHidden) {
-      requestAnimationFrame(() => {
-        setTimeout(() => MapModule.map.invalidateSize(), 50);
-      });
+      // Wait for CSS transition to finish, then force full Leaflet redraw
+      setTimeout(() => {
+        MapModule.map.invalidateSize({ pan: false });
+        // Force tile layer redraw
+        MapModule.map.eachLayer(layer => {
+          if (layer.redraw) layer.redraw();
+        });
+      }, 350);
     }
   },
 
