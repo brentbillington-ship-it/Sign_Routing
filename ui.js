@@ -888,7 +888,7 @@ const UI = {
     const wrap = document.getElementById('map-wrap');
     const btn = document.getElementById('map-toggle-btn');
     const isHidden = wrap.classList.toggle('map-hidden');
-    btn.textContent = isHidden ? '🗺 Show Map' : '🗺 Map';
+    btn.textContent = isHidden ? '🗺 Show Map' : '🗺 Hide Map';
     if (!isHidden) {
       requestAnimationFrame(() => {
         setTimeout(() => MapModule.map.invalidateSize(), 50);

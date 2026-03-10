@@ -91,11 +91,29 @@ const App = {
     try {
       const data = await SheetsAPI.getAll();
       if (data.error) return;
+
+      // Only re-render if delivery state actually changed
+      const oldHash = this._deliveryHash(this.state.routes);
       this.state.routes = data.routes;
+      const newHash = this._deliveryHash(this.state.routes);
+
+      if (oldHash === newHash) {
+        // Nothing delivered/undelivered — skip map redraw, just update stats quietly
+        UI.updateStats(this.state.routes);
+        return;
+      }
+
       this.render();
     } catch (e) {
-      // Silently ignore — offline banner already handles persistent failures
+      // Silently ignore — offline banner handles persistent failures
     }
+  },
+
+  _deliveryHash(routes) {
+    // Lightweight fingerprint of all delivery states
+    return routes.map(r =>
+      r.stops.map(s => s.id + ':' + (s.delivered ? '1' : '0')).join(',')
+    ).join('|');
   },
 
   async _sendHeartbeat() {
