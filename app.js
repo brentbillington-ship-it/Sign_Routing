@@ -72,11 +72,30 @@ const App = {
     this._pollPresence();
     this._presencePollInterval = setInterval(() => this._pollPresence(), 15000);
 
+    // Silent background data refresh every 60s — keeps map current
+    this._dataRefreshInterval = setInterval(() => this._silentRefresh(), 60000);
+
     // Clean up on tab close
     window.addEventListener('beforeunload', () => {
       clearInterval(this._presenceInterval);
       clearInterval(this._presencePollInterval);
+      clearInterval(this._dataRefreshInterval);
     });
+  },
+
+  async _silentRefresh() {
+    // Skip if a modal is open — don't yank the UI mid-action
+    const modal = document.getElementById('modal-overlay');
+    if (modal && modal.style.display === 'flex') return;
+
+    try {
+      const data = await SheetsAPI.getAll();
+      if (data.error) return;
+      this.state.routes = data.routes;
+      this.render();
+    } catch (e) {
+      // Silently ignore — offline banner already handles persistent failures
+    }
   },
 
   async _sendHeartbeat() {
