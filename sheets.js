@@ -1,19 +1,44 @@
 // ─── Google Sheets API Module ───
+// Apps Script web apps return a 302 redirect, so we need redirect: 'follow'
+// For POST, Apps Script needs the data sent as a form parameter or we use GET with encoded params
 
 const SheetsAPI = {
   async getAll() {
-    const url = CONFIG.SHEETS_API_URL + '?action=getAll';
-    const resp = await fetch(url);
-    return resp.json();
+    try {
+      const url = CONFIG.SHEETS_API_URL + '?action=getAll';
+      const resp = await fetch(url, { redirect: 'follow' });
+      if (!resp.ok) throw new Error('HTTP ' + resp.status);
+      return resp.json();
+    } catch (e) {
+      console.error('getAll failed:', e);
+      throw e;
+    }
   },
 
   async post(data) {
-    const resp = await fetch(CONFIG.SHEETS_API_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'text/plain' }, // Apps Script needs text/plain for CORS
-      body: JSON.stringify(data)
-    });
-    return resp.json();
+    try {
+      // Apps Script POST with redirect handling
+      // Using form-encoded approach which handles CORS better
+      const resp = await fetch(CONFIG.SHEETS_API_URL, {
+        method: 'POST',
+        redirect: 'follow',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify(data)
+      });
+      if (!resp.ok) throw new Error('HTTP ' + resp.status);
+      return resp.json();
+    } catch (e) {
+      // Fallback: try using GET with encoded payload for simple actions
+      console.error('POST failed, trying GET fallback:', e);
+      try {
+        const encoded = encodeURIComponent(JSON.stringify(data));
+        const resp = await fetch(CONFIG.SHEETS_API_URL + '?payload=' + encoded, { redirect: 'follow' });
+        return resp.json();
+      } catch (e2) {
+        console.error('GET fallback also failed:', e2);
+        throw e2;
+      }
+    }
   },
 
   async addStop(stop) {

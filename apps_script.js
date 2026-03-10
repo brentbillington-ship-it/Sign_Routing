@@ -25,6 +25,12 @@
 
 function doGet(e) {
   try {
+    // Check for payload parameter (fallback for POST via GET)
+    if (e.parameter.payload) {
+      const data = JSON.parse(decodeURIComponent(e.parameter.payload));
+      return handleAction(data);
+    }
+
     const action = e.parameter.action || 'getAll';
     let result;
 
@@ -44,9 +50,8 @@ function doGet(e) {
   }
 }
 
-function doPost(e) {
+function handleAction(data) {
   try {
-    const data = JSON.parse(e.postData.contents);
     const action = data.action;
     let result;
 
@@ -91,6 +96,11 @@ function doPost(e) {
     return ContentService.createTextOutput(JSON.stringify({ error: err.toString() }))
       .setMimeType(ContentService.MimeType.JSON);
   }
+}
+
+function doPost(e) {
+  const data = JSON.parse(e.postData.contents);
+  return handleAction(data);
 }
 
 // ─── Helpers ───
