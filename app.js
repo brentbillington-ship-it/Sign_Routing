@@ -3,29 +3,53 @@
 const App = {
   state: { routes: [] },
 
+  // Unique ID for this browser tab session
+  _sessionId: Math.random().toString(36).slice(2, 10) + Date.now().toString(36),
+
+  // Retry queue for failed markDelivered calls
+  _retryQueue: [],
+  _retrying: false,
+  _isOffline: false,
+  _presenceInterval: null,
+  _presencePollInterval: null,
+
   async init() {
     UI.init();
     MapModule.init();
     await this.loadData();
+    this._startPresence();
+    // Flush any queued retries on focus (e.g. coming back online)
+    window.addEventListener('focus', () => this._flushRetryQueue());
+    window.addEventListener('online', () => {
+      UI.setOffline(false);
+      this._isOffline = false;
+      this._flushRetryQueue();
+    });
+    window.addEventListener('offline', () => {
+      UI.setOffline(true);
+      this._isOffline = true;
+    });
   },
 
   async loadData() {
-    UI.showToast('Loading routes...', 'info');
+    UI.showToast('Loading routes…', 'info');
     try {
       const data = await SheetsAPI.getAll();
       if (data.error) throw new Error(data.error);
       this.state.routes = data.routes;
       this.render();
-      UI.showToast('Routes loaded', 'success');
+      UI.showToast('Routes loaded ✓', 'success');
+      UI.setOffline(false);
     } catch (e) {
       console.error('Load failed:', e);
-      UI.showToast('Failed to load data \u2014 check config.js', 'error');
+      UI.showToast('Failed to load data — check config.js', 'error');
+      UI.setOffline(true);
     }
   },
 
   render() {
     const routes = this.getFilteredRoutes();
-    UI.updateStats(this.state.routes); // always show full stats
+    UI.updateStats(this.state.routes);
     UI.renderSidebar(routes);
     MapModule.renderRoutes(routes, { showDelivered: UI.showDelivered });
   },
@@ -37,10 +61,82 @@ const App = {
     return this.state.routes;
   },
 
+  // ─── Presence ───
+
+  _startPresence() {
+    // Send heartbeat immediately, then every 30s
+    this._sendHeartbeat();
+    this._presenceInterval = setInterval(() => this._sendHeartbeat(), 30000);
+
+    // Poll for other users every 15s
+    this._pollPresence();
+    this._presencePollInterval = setInterval(() => this._pollPresence(), 15000);
+
+    // Clean up on tab close
+    window.addEventListener('beforeunload', () => {
+      clearInterval(this._presenceInterval);
+      clearInterval(this._presencePollInterval);
+    });
+  },
+
+  async _sendHeartbeat() {
+    const name = UI.volunteerName || 'Unknown';
+    try {
+      await SheetsAPI.heartbeat(name, this._sessionId);
+    } catch (e) {
+      // Silently ignore heartbeat failures — not critical
+    }
+  },
+
+  async _pollPresence() {
+    try {
+      const result = await SheetsAPI.getPresence();
+      if (result && result.users) {
+        UI.renderPresence(result.users);
+      }
+    } catch (e) {
+      // Silently ignore presence poll failures
+    }
+  },
+
+    // ─── Retry Queue ───
+
+  _enqueueRetry(fn, label) {
+    this._retryQueue.push({ fn, label, attempts: 0 });
+    UI.setSyncStatus('error');
+    UI.setOffline(true);
+  },
+
+  async _flushRetryQueue() {
+    if (this._retrying || this._retryQueue.length === 0) return;
+    this._retrying = true;
+    UI.setSyncStatus('syncing');
+
+    const remaining = [];
+    for (const item of this._retryQueue) {
+      try {
+        await item.fn();
+        UI.showToast(`Synced: ${item.label}`, 'success');
+      } catch (e) {
+        item.attempts++;
+        if (item.attempts < 5) remaining.push(item);
+      }
+    }
+
+    this._retryQueue = remaining;
+    this._retrying = false;
+
+    if (remaining.length === 0) {
+      UI.setSyncStatus('ok');
+      UI.setOffline(false);
+    } else {
+      UI.setSyncStatus('error');
+    }
+  },
+
   // ─── Actions ───
 
   async toggleDelivered(stopId) {
-    // Find the stop
     let stop = null, route = null;
     for (const r of this.state.routes) {
       const s = r.stops.find(x => x.id === stopId);
@@ -56,14 +152,13 @@ const App = {
     stop.delivered_date = newVal ? new Date().toISOString() : '';
     stop.delivered_by = newVal ? deliveredBy : '';
 
-    // Update UI immediately
     const stopIndex = route.stops.indexOf(stop);
     MapModule.updateStopMarker(stop, route, stopIndex);
     MapModule.addLegend(this.state.routes);
     UI.renderSidebar(this.getFilteredRoutes());
     UI.updateStats(this.state.routes);
 
-    // If signs > 1, confirm count
+    // Multi-sign confirmation
     if (newVal && stop.signs > 1) {
       const confirmed = confirm(`Deliver ${stop.signs} signs to ${stop.name}?`);
       if (!confirmed) {
@@ -75,17 +170,33 @@ const App = {
       }
     }
 
-    // Save to sheet
+    // Toast with name attribution
+    if (newVal) {
+      const byStr = deliveredBy ? ` by ${deliveredBy}` : '';
+      UI.showToast(`✓ Delivered${byStr}`, 'success');
+    } else {
+      UI.showToast('Marked undelivered', 'info');
+    }
+
+    UI.setSyncStatus('syncing');
+
+    // Save to sheet with retry on failure
     try {
       await SheetsAPI.markDelivered(stopId, newVal, deliveredBy);
+      UI.setSyncStatus('ok');
     } catch (e) {
-      console.error('Save failed:', e);
-      UI.showToast('Failed to save \u2014 will retry', 'error');
+      console.error('Save failed, queuing retry:', e);
+      const label = `${stop.name} (${newVal ? 'delivered' : 'undelivered'})`;
+      this._enqueueRetry(
+        () => SheetsAPI.markDelivered(stopId, newVal, deliveredBy),
+        label
+      );
+      UI.showToast('⚠ Save failed — will retry when online', 'error');
     }
   },
 
   async addStop(stopData) {
-    UI.showToast('Adding stop...', 'info');
+    UI.showToast('Adding stop…', 'info');
     try {
       const result = await SheetsAPI.addStop(stopData);
       if (result.error) throw new Error(result.error);
@@ -97,7 +208,6 @@ const App = {
   },
 
   async removeStop(stopId) {
-    // Find stop name for confirmation
     let stopName = '';
     for (const r of this.state.routes) {
       const s = r.stops.find(x => x.id === stopId);
@@ -105,7 +215,7 @@ const App = {
     }
     if (!confirm(`Remove ${stopName}?`)) return;
 
-    UI.showToast('Removing...', 'info');
+    UI.showToast('Removing…', 'info');
     try {
       const result = await SheetsAPI.removeStop(stopId);
       if (result.error) throw new Error(result.error);
@@ -117,7 +227,7 @@ const App = {
   },
 
   async reassignStop(stopId, newRoute) {
-    UI.showToast('Reassigning...', 'info');
+    UI.showToast('Reassigning…', 'info');
     try {
       const result = await SheetsAPI.reassignStop(stopId, newRoute);
       if (result.error) throw new Error(result.error);
@@ -129,7 +239,7 @@ const App = {
   },
 
   async reorderStops(routeLetter, orderIds) {
-    UI.showToast('Reordering...', 'info');
+    UI.showToast('Reordering…', 'info');
     try {
       const result = await SheetsAPI.reorderStops(routeLetter, orderIds);
       if (result.error) throw new Error(result.error);
@@ -141,7 +251,7 @@ const App = {
   },
 
   async addRoute(letter, color, volunteer) {
-    UI.showToast('Creating route...', 'info');
+    UI.showToast('Creating route…', 'info');
     try {
       const result = await SheetsAPI.addRoute(letter, color, volunteer);
       if (result.error) throw new Error(result.error);
@@ -155,7 +265,7 @@ const App = {
   async deleteRoute(letter) {
     const route = this.state.routes.find(r => r.letter === letter);
     if (route && route.stops.length > 0) {
-      return alert('Cannot delete Route ' + letter + ' \u2014 reassign its ' + route.stops.length + ' stops first.');
+      return alert(`Cannot delete Route ${letter} — reassign its ${route.stops.length} stops first.`);
     }
     if (!confirm('Delete Route ' + letter + '?')) return;
 
@@ -181,16 +291,14 @@ const App = {
   },
 
   async tryOSRM() {
-    UI.showToast('Attempting OSRM optimization...', 'info');
+    UI.showToast('Attempting OSRM optimization…', 'info');
     let success = 0;
     for (const route of this.state.routes) {
       const result = await MapModule.optimizeRoute(route);
       if (result) {
-        // Reorder stops
         const oldStops = [...route.stops];
         route.stops = result.order.map(i => oldStops[i]);
         MapModule.drawOptimizedPolyline(route, result.coords);
-        // Save new order to sheet
         const orderIds = route.stops.map(s => s.id);
         await SheetsAPI.reorderStops(route.letter, orderIds);
         success++;
@@ -200,7 +308,7 @@ const App = {
       this.render();
       UI.showToast(`Optimized ${success}/${this.state.routes.length} routes`, 'success');
     } else {
-      UI.showToast('OSRM unavailable \u2014 use RouteXL links to optimize manually', 'error');
+      UI.showToast('OSRM unavailable — use RouteXL links to optimize manually', 'error');
     }
   },
 
@@ -219,6 +327,18 @@ const App = {
     return nearest;
   },
 
+  findDuplicateStop(address) {
+    const normalized = address.toLowerCase().replace(/\s+/g, ' ').trim();
+    for (const r of this.state.routes) {
+      for (const s of r.stops) {
+        if (s.address.toLowerCase().replace(/\s+/g, ' ').trim() === normalized) {
+          return { route: r.letter, name: s.name };
+        }
+      }
+    }
+    return null;
+  },
+
   getNextRouteLetter() {
     const used = new Set(this.state.routes.map(r => r.letter));
     for (let i = 0; i < 26; i++) {
@@ -229,10 +349,10 @@ const App = {
   },
 
   exportCSV() {
-    let csv = 'Route,Name,Address,Lat,Lon,Signs,Notes,Delivered,Delivered Date,Delivered By\n';
+    let csv = 'Route,Volunteer,Name,Address,Lat,Lon,Signs,Notes,Delivered,Delivered Date,Delivered By\n';
     for (const r of this.state.routes) {
       for (const s of r.stops) {
-        csv += [r.letter, s.name, `"${s.address}"`, s.lat, s.lon, s.signs, `"${s.notes}"`, s.delivered, s.delivered_date, s.delivered_by].join(',') + '\n';
+        csv += [r.letter, `"${r.volunteer}"`, `"${s.name}"`, `"${s.address}"`, s.lat, s.lon, s.signs, `"${s.notes}"`, s.delivered, s.delivered_date, `"${s.delivered_by}"`].join(',') + '\n';
       }
     }
     const blob = new Blob([csv], { type: 'text/csv' });

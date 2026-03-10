@@ -10,42 +10,157 @@ const UI = {
   init() {
     this.renderHeader();
     this.renderAdminBar();
+    this.renderOfflineBanner();
+    this.renderNamePrompt();
   },
+
+  // ─── Offline Banner ───
+
+  renderOfflineBanner() {
+    const el = document.createElement('div');
+    el.id = 'offline-banner';
+    el.innerHTML = '⚠ Working offline — changes may not be saving. Check your connection.';
+    document.body.insertBefore(el, document.querySelector('.container'));
+  },
+
+  setOffline(isOffline) {
+    const banner = document.getElementById('offline-banner');
+    if (!banner) return;
+    if (isOffline) {
+      banner.classList.add('visible');
+      document.body.classList.add('has-offline-banner');
+    } else {
+      banner.classList.remove('visible');
+      document.body.classList.remove('has-offline-banner');
+    }
+  },
+
+  // ─── First-run Name Prompt ───
+
+  renderNamePrompt() {
+    const overlay = document.createElement('div');
+    overlay.id = 'name-prompt-overlay';
+    overlay.innerHTML = `
+      <div class="name-prompt-box">
+        <div class="prompt-icon">🪧</div>
+        <h2>Welcome!</h2>
+        <p>Enter your name so deliveries get attributed to you. This is saved on your device.</p>
+        <input type="text" id="prompt-name-input" placeholder="Your name" autocomplete="off">
+        <button class="btn btn-green" style="width:100%" onclick="UI.savePromptName()">Let's go</button>
+        <br>
+        <button class="btn-skip" onclick="UI.skipNamePrompt()">Skip for now</button>
+      </div>
+    `;
+    document.body.appendChild(overlay);
+
+    // Show on first load if no name saved
+    if (!this.volunteerName) {
+      overlay.classList.add('visible');
+      setTimeout(() => {
+        const inp = document.getElementById('prompt-name-input');
+        if (inp) inp.focus();
+      }, 100);
+    }
+
+    // Allow Enter key
+    overlay.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') this.savePromptName();
+    });
+  },
+
+  savePromptName() {
+    const val = (document.getElementById('prompt-name-input')?.value || '').trim();
+    if (val) {
+      this.volunteerName = val;
+      localStorage.setItem('volunteerName', val);
+      this._updateVolNameInput();
+    }
+    document.getElementById('name-prompt-overlay').classList.remove('visible');
+  },
+
+  skipNamePrompt() {
+    // Mark that they've seen the prompt so we don't show it again this session
+    document.getElementById('name-prompt-overlay').classList.remove('visible');
+  },
+
+  // ─── Header ───
 
   renderHeader() {
     const header = document.getElementById('header');
     header.innerHTML = `
-      <h1>Chaka Yard Signs</h1>
+      <h1>🪧 Chaka Signs</h1>
       <div class="header-controls">
+        <div id="volunteer-name-wrap">
+          👤 <input type="text" id="volunteer-name-input" placeholder="Your name" title="Your name (shown on deliveries)" value="${this.volunteerName}">
+        </div>
         <select id="my-route-filter" title="Filter to my route">
           <option value="">All Routes</option>
         </select>
         <label class="toggle-label" title="Show/hide delivered stops">
           <input type="checkbox" id="toggle-delivered" checked> Delivered
         </label>
-        <button class="btn btn-admin" id="admin-btn">\u2699 Admin</button>
+        <button class="btn btn-admin" id="admin-btn">⚙ Admin</button>
       </div>
-      <div class="stats" id="stats"></div>
+      <div class="stats" id="stats">
+        <span id="sync-indicator"></span>
+      </div>
+      <div id="presence-bar"></div>
     `;
 
     document.getElementById('admin-btn').addEventListener('click', () => this.toggleAdmin());
+
     document.getElementById('toggle-delivered').addEventListener('change', (e) => {
       this.showDelivered = e.target.checked;
       App.render();
     });
+
     document.getElementById('my-route-filter').addEventListener('change', (e) => {
       this.myRouteFilter = e.target.value || null;
       App.render();
     });
+
+    const nameInput = document.getElementById('volunteer-name-input');
+    nameInput.addEventListener('input', (e) => {
+      this.volunteerName = e.target.value.trim();
+      localStorage.setItem('volunteerName', this.volunteerName);
+      this._updateVolNameInput();
+    });
+
+    this._updateVolNameInput();
   },
+
+  _updateVolNameInput() {
+    const inp = document.getElementById('volunteer-name-input');
+    if (!inp) return;
+    if (this.volunteerName) {
+      inp.classList.add('has-name');
+      inp.value = this.volunteerName;
+    } else {
+      inp.classList.remove('has-name');
+    }
+  },
+
+  setSyncStatus(status) {
+    // status: 'syncing' | 'ok' | 'error' | ''
+    const el = document.getElementById('sync-indicator');
+    if (!el) return;
+    el.className = 'sync-indicator ' + status;
+    if (status === 'syncing') el.textContent = '↻ Saving…';
+    else if (status === 'ok') { el.textContent = '✓ Saved'; setTimeout(() => { if (el.textContent === '✓ Saved') el.textContent = ''; el.className = ''; }, 2500); }
+    else if (status === 'error') el.textContent = '⚠ Save failed';
+    else el.textContent = '';
+  },
+
+  // ─── Admin Bar ───
 
   renderAdminBar() {
     const bar = document.getElementById('admin-bar');
     bar.innerHTML = `
       <button class="btn btn-green" onclick="UI.showAddStopForm()">+ Add Address</button>
       <button class="btn btn-green" onclick="UI.showAddRouteForm()">+ New Route</button>
-      <button class="btn" onclick="App.exportCSV()">\u2913 Export CSV</button>
-      <button class="btn" onclick="App.tryOSRM()">\u21bb Optimize All (OSRM)</button>
+      <button class="btn" onclick="UI.toggleVolPanel()">👥 Assign Volunteers</button>
+      <button class="btn" onclick="App.exportCSV()">⤓ Export CSV</button>
+      <button class="btn" onclick="App.tryOSRM()">↻ Optimize All (OSRM)</button>
     `;
     bar.style.display = 'none';
   },
@@ -55,6 +170,8 @@ const UI = {
       this.isAdmin = false;
       document.getElementById('admin-bar').style.display = 'none';
       document.body.classList.remove('admin-mode');
+      const vp = document.getElementById('vol-panel');
+      if (vp) vp.classList.remove('visible');
       App.render();
       return;
     }
@@ -69,52 +186,167 @@ const UI = {
     }
   },
 
+  // ─── Volunteer Assignment Panel ───
+
+  toggleVolPanel() {
+    const sb = document.getElementById('sidebar');
+    let panel = document.getElementById('vol-panel');
+    if (!panel) {
+      panel = document.createElement('div');
+      panel.id = 'vol-panel';
+      sb.insertBefore(panel, sb.firstChild);
+    }
+    if (panel.classList.contains('visible')) {
+      panel.classList.remove('visible');
+    } else {
+      this.renderVolPanel(panel);
+      panel.classList.add('visible');
+    }
+  },
+
+  renderVolPanel(panel) {
+    const routes = App.state.routes;
+    const rows = routes.map(r => {
+      const color = r.color || '#58a6ff';
+      const isAssigned = r.volunteer && r.volunteer !== '[UNASSIGNED]';
+      return `
+        <div class="vol-row">
+          <div class="vol-row-badge" style="background:${color}">${r.letter}</div>
+          <label>Route ${r.letter}</label>
+          <input type="text"
+            class="${isAssigned ? 'assigned' : ''}"
+            placeholder="[UNASSIGNED]"
+            value="${isAssigned ? r.volunteer : ''}"
+            data-route="${r.letter}"
+            oninput="this.classList.toggle('assigned', this.value.trim().length > 0)">
+        </div>`;
+    }).join('');
+
+    panel.innerHTML = `
+      <div class="vol-panel-header">
+        <h3>👥 Assign Volunteers</h3>
+        <button onclick="UI.toggleVolPanel()">✕</button>
+      </div>
+      ${rows}
+      <div class="vol-panel-footer">
+        <button class="btn" onclick="UI.toggleVolPanel()">Cancel</button>
+        <button class="btn btn-green" onclick="UI.saveVolAssignments()">Save All</button>
+      </div>
+    `;
+  },
+
+  async saveVolAssignments() {
+    const inputs = document.querySelectorAll('#vol-panel input[data-route]');
+    const updates = [];
+    inputs.forEach(inp => {
+      const letter = inp.dataset.route;
+      const volunteer = inp.value.trim() || '[UNASSIGNED]';
+      const route = App.state.routes.find(r => r.letter === letter);
+      if (route && route.volunteer !== volunteer) {
+        updates.push({ letter, volunteer });
+      }
+    });
+
+    if (updates.length === 0) {
+      this.showToast('No changes to save', 'info');
+      this.toggleVolPanel();
+      return;
+    }
+
+    this.showToast('Saving assignments…', 'info');
+    try {
+      for (const u of updates) {
+        await App.updateRoute(u.letter, { volunteer: u.volunteer });
+      }
+      this.toggleVolPanel();
+      this.showToast(`Saved ${updates.length} assignment${updates.length > 1 ? 's' : ''}`, 'success');
+    } catch (e) {
+      this.showToast('Failed to save assignments', 'error');
+    }
+  },
+
+  // ─── Stats ───
+
   updateStats(routes) {
     const totalStops = routes.reduce((s, r) => s + r.stops.length, 0);
     const totalSigns = routes.reduce((s, r) => s + r.stops.reduce((a, b) => a + b.signs, 0), 0);
     const totalDelivered = routes.reduce((s, r) => s + r.stops.filter(x => x.delivered).length, 0);
-    document.getElementById('stats').innerHTML = `
-      <span>${routes.length}</span> Routes &nbsp;\u00b7&nbsp;
-      <span>${totalStops}</span> Stops &nbsp;\u00b7&nbsp;
-      <span>${totalSigns}</span> Signs &nbsp;\u00b7&nbsp;
+
+    const statsEl = document.getElementById('stats');
+    const syncEl = document.getElementById('sync-indicator');
+    const syncHtml = syncEl ? syncEl.outerHTML : '';
+
+    statsEl.innerHTML = `
+      <span>${routes.length}</span> Routes &nbsp;·&nbsp;
+      <span>${totalStops}</span> Stops &nbsp;·&nbsp;
+      <span>${totalSigns}</span> Signs &nbsp;·&nbsp;
       <span class="delivered-count">${totalDelivered}/${totalStops}</span> Delivered
+      ${syncHtml}
     `;
 
     // Update route filter dropdown
     const sel = document.getElementById('my-route-filter');
     const currentVal = sel.value;
     sel.innerHTML = '<option value="">All Routes</option>' +
-      routes.map(r => `<option value="${r.letter}"${r.letter === currentVal ? ' selected' : ''}>Route ${r.letter}${r.volunteer !== '[UNASSIGNED]' ? ' \u2014 ' + r.volunteer : ''}</option>`).join('');
+      routes.map(r => {
+        const label = r.volunteer && r.volunteer !== '[UNASSIGNED]'
+          ? `Route ${r.letter} — ${r.volunteer}`
+          : `Route ${r.letter}`;
+        return `<option value="${r.letter}"${r.letter === currentVal ? ' selected' : ''}>${label}</option>`;
+      }).join('');
   },
+
+  // ─── Sidebar ───
 
   renderSidebar(routes) {
     const sb = document.getElementById('sidebar');
+
+    // Preserve vol-panel if it exists
+    const existingPanel = document.getElementById('vol-panel');
+
     sb.innerHTML = '';
 
-    const filtered = this.myRouteFilter
-      ? routes.filter(r => r.letter === this.myRouteFilter)
-      : routes;
+    // Re-insert vol panel if it was open
+    if (existingPanel && existingPanel.classList.contains('visible')) {
+      sb.appendChild(existingPanel);
+    }
 
-    filtered.forEach((route, ri) => {
+    // Sort: incomplete routes first, 100% delivered routes last
+    const sorted = [...routes].sort((a, b) => {
+      const aPct = a.stops.length > 0 ? a.stops.filter(s => s.delivered).length / a.stops.length : 0;
+      const bPct = b.stops.length > 0 ? b.stops.filter(s => s.delivered).length / b.stops.length : 0;
+      const aFull = aPct >= 1;
+      const bFull = bPct >= 1;
+      if (aFull !== bFull) return aFull ? 1 : -1;
+      return 0; // preserve original order among same group
+    });
+
+    sorted.forEach((route, ri) => {
       const color = route.color || CONFIG.ROUTE_COLORS[ri % CONFIG.ROUTE_COLORS.length];
       const delivered = route.stops.filter(s => s.delivered).length;
       const total = route.stops.length;
       const pct = total > 0 ? Math.round((delivered / total) * 100) : 0;
       const totalSigns = route.stops.reduce((a, s) => a + s.signs, 0);
+      const allDone = total > 0 && delivered === total;
+      const isUnassigned = !route.volunteer || route.volunteer === '[UNASSIGNED]';
 
       const card = document.createElement('div');
-      card.className = 'route-card' + (this.openRoute === route.letter ? ' open' : '');
+      card.className = 'route-card' +
+        (this.openRoute === route.letter ? ' open' : '') +
+        (allDone ? ' all-delivered' : '');
       card.id = 'card-' + route.letter;
 
-      // Progress bar
       const progressBar = `<div class="progress-bar"><div class="progress-fill" style="width:${pct}%;background:${color}"></div></div>`;
 
-      // Volunteer name
-      const volName = route.volunteer || '[UNASSIGNED]';
+      const volDisplay = isUnassigned ? '' : route.volunteer;
+
+      const signsPill = totalSigns > total
+        ? `<span class="signs-pill">📦 ${totalSigns} signs</span>`
+        : '';
 
       // Stops HTML
       const visibleStops = this.showDelivered ? route.stops : route.stops.filter(s => !s.delivered);
-      const stopsHtml = visibleStops.map((s, si) => {
+      const stopsHtml = visibleStops.map((s) => {
         const actualIndex = route.stops.indexOf(s);
         const deliveredClass = s.delivered ? ' stop-delivered' : '';
         let extra = '';
@@ -122,17 +354,20 @@ const UI = {
         if (s.notes) extra += ` <span class="stop-notes">[${s.notes}]</span>`;
 
         const deliverBtn = `<button class="deliver-btn ${s.delivered ? 'delivered' : ''}" onclick="event.stopPropagation(); App.toggleDelivered('${s.id}')" title="${s.delivered ? 'Mark undelivered' : 'Mark delivered'}">
-          ${s.delivered ? '\u2713' : '\u25cb'}
+          ${s.delivered ? '✓' : '○'}
         </button>`;
 
         const adminBtns = this.isAdmin ? `
           <div class="stop-admin">
-            <button class="btn-tiny" onclick="event.stopPropagation(); UI.showReassignForm('${s.id}')" title="Reassign">\u21c4</button>
-            <button class="btn-tiny btn-danger" onclick="event.stopPropagation(); App.removeStop('${s.id}')" title="Remove">\u2715</button>
+            <button class="btn-tiny" onclick="event.stopPropagation(); UI.showReassignForm('${s.id}')" title="Reassign">⇄</button>
+            <button class="btn-tiny btn-danger" onclick="event.stopPropagation(); App.removeStop('${s.id}')" title="Remove">✕</button>
           </div>` : '';
 
-        const deliveryInfo = s.delivered ? `<div class="delivery-info">\u2713 ${s.delivered_date ? new Date(s.delivered_date).toLocaleDateString() : ''} ${s.delivered_by ? 'by ' + s.delivered_by : ''}</div>` : '';
+        const deliveryInfo = s.delivered
+          ? `<div class="delivery-info">✓ ${s.delivered_date ? new Date(s.delivered_date).toLocaleString('en-US', { timeZone: 'America/Chicago', month: 'numeric', day: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true }) + ' CT' : ''}${s.delivered_by ? ' by ' + s.delivered_by : ''}</div>`
+          : '';
 
+        // Duplicate check indicator (set during addStop flow)
         return `<div class="stop${deliveredClass}">
           ${deliverBtn}
           <div class="stop-content">
@@ -146,36 +381,41 @@ const UI = {
         </div>`;
       }).join('');
 
-      // Google Maps link
       const gmLink = 'https://www.google.com/maps/dir/' + route.stops.map(s => encodeURIComponent(s.address)).join('/');
-
-      // RouteXL link
       const rxlQ = route.stops.map(s => s.address).join('$');
       const rxlLink = 'https://www.routexl.com/?q=' + encodeURIComponent(rxlQ) + '&roundtrip=false&lang=en';
 
-      // Admin route controls
+      // Inline assign button (admin only)
+      const assignBtn = this.isAdmin
+        ? `<button class="route-assign-btn ${isUnassigned ? 'unassigned' : ''}" onclick="event.stopPropagation(); UI.showQuickAssignForm('${route.letter}')" title="Assign volunteer">👤 ${isUnassigned ? 'Assign' : route.volunteer}</button>`
+        : '';
+
       const adminRouteControls = this.isAdmin ? `
         <div class="route-admin-controls">
-          <button class="btn btn-sm" onclick="event.stopPropagation(); UI.showReorderForm('${route.letter}')">\u2195 Reorder</button>
-          <button class="btn btn-sm" onclick="event.stopPropagation(); UI.showEditRouteForm('${route.letter}')">\u270e Edit Route</button>
-          <button class="btn btn-sm btn-danger" onclick="event.stopPropagation(); App.deleteRoute('${route.letter}')">\u2715 Delete Route</button>
+          <button class="btn btn-sm" onclick="event.stopPropagation(); UI.showReorderForm('${route.letter}')">↕ Reorder</button>
+          <button class="btn btn-sm" onclick="event.stopPropagation(); UI.showEditRouteForm('${route.letter}')">✎ Edit Route</button>
+          <button class="btn btn-sm btn-danger" onclick="event.stopPropagation(); App.deleteRoute('${route.letter}')">✕ Delete Route</button>
         </div>` : '';
+
+      const allDoneBadge = allDone ? `<span style="font-size:10px;color:var(--green);font-weight:700;margin-left:4px">✓ Complete</span>` : '';
 
       card.innerHTML = `
         <div class="route-header" onclick="UI.toggleRoute('${route.letter}')">
-          <div class="route-badge" style="background:${color}">${route.letter}</div>
+          <div class="route-badge ${isUnassigned ? 'unassigned' : ''}" style="background:${color}">${route.letter}</div>
           <div class="route-meta">
-            <div class="title">Route ${route.letter} \u2014 ${total} stops</div>
-            <div class="info">${totalSigns} signs \u00b7 ${volName} \u00b7 ${delivered}/${total} delivered</div>
+            <div class="title">Route ${route.letter} — ${total} stops${signsPill}${allDoneBadge}</div>
+            <div class="info">${volDisplay ? volDisplay + ' · ' : ''}${delivered}/${total} delivered</div>
             ${progressBar}
           </div>
-          <div class="route-toggle">\u25BC</div>
+          ${assignBtn}
+          <div class="route-toggle">▼</div>
         </div>
         <div class="route-stops">
           ${stopsHtml}
           <div class="route-actions">
-            <a class="route-link gmaps" href="${gmLink}" target="_blank">\ud83d\udccd Google Maps</a>
-            <a class="route-link routexl" href="${rxlLink}" target="_blank">\ud83d\udd00 RouteXL</a>
+            <a class="route-link gmaps" href="${gmLink}" target="_blank">📍 Google Maps</a>
+            <a class="route-link routexl" href="${rxlLink}" target="_blank">🔀 RouteXL</a>
+            <button class="copy-addrs-btn" onclick="event.stopPropagation(); UI.copyAddresses('${route.letter}')">📋 Copy Addresses</button>
           </div>
           ${adminRouteControls}
         </div>`;
@@ -192,17 +432,54 @@ const UI = {
       const route = App.state.routes.find(r => r.letter === letter);
       if (route) MapModule.focusRoute(route);
     }
-    // Re-render just the card states
     document.querySelectorAll('.route-card').forEach(c => {
       c.classList.toggle('open', c.id === 'card-' + this.openRoute);
     });
   },
 
+  // ─── Copy Addresses ───
+
+  copyAddresses(letter) {
+    const route = App.state.routes.find(r => r.letter === letter);
+    if (!route) return;
+    const text = route.stops.map((s, i) => `${i + 1}. ${s.name} — ${s.address}`).join('\n');
+    navigator.clipboard.writeText(text).then(() => {
+      this.showToast(`Copied ${route.stops.length} addresses for Route ${letter}`, 'success');
+    }).catch(() => {
+      // Fallback for older browsers
+      const ta = document.createElement('textarea');
+      ta.value = text;
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand('copy');
+      ta.remove();
+      this.showToast(`Copied Route ${letter} addresses`, 'success');
+    });
+  },
+
   // ─── Forms ───
+
+  showQuickAssignForm(letter) {
+    const route = App.state.routes.find(r => r.letter === letter);
+    if (!route) return;
+    const current = route.volunteer === '[UNASSIGNED]' ? '' : (route.volunteer || '');
+    this.showModal(`Assign Volunteer — Route ${letter}`, `
+      <div class="form-group">
+        <label>Volunteer Name</label>
+        <input type="text" id="form-quick-vol" value="${current}" placeholder="Full name" autofocus>
+      </div>
+    `, async () => {
+      const volunteer = document.getElementById('form-quick-vol').value.trim() || '[UNASSIGNED]';
+      await App.updateRoute(letter, { volunteer });
+      this.closeModal();
+    });
+    // Auto-focus
+    setTimeout(() => document.getElementById('form-quick-vol')?.focus(), 100);
+  },
 
   showAddStopForm() {
     const routes = App.state.routes;
-    const routeOpts = routes.map(r => `<option value="${r.letter}">Route ${r.letter}</option>`).join('');
+    const routeOpts = routes.map(r => `<option value="${r.letter}">Route ${r.letter}${r.volunteer !== '[UNASSIGNED]' ? ' — ' + r.volunteer : ''}</option>`).join('');
 
     this.showModal('Add Address', `
       <div class="form-group">
@@ -246,6 +523,7 @@ const UI = {
         <input type="text" id="form-notes" placeholder="Optional install notes">
       </div>
       <div id="geocode-status" class="form-status"></div>
+      <div id="dup-warning" class="form-status error" style="display:none"></div>
     `, async () => {
       const name = document.getElementById('form-name').value.trim();
       const street = document.getElementById('form-address').value.trim();
@@ -257,13 +535,33 @@ const UI = {
       const notes = document.getElementById('form-notes').value.trim();
 
       if (!name || !street) return alert('Name and address are required');
-      if (isNaN(lat) || isNaN(lon)) return alert('Coordinates required \u2014 click Geocode or paste lat/lon');
+      if (isNaN(lat) || isNaN(lon)) return alert('Coordinates required — click Geocode or paste lat/lon');
 
       const address = street + ', ' + city;
 
-      // Auto-assign to nearest route
+      // Duplicate check
+      const dup = App.findDuplicateStop(address);
+      if (dup) {
+        const proceed = confirm(`⚠ "${address}" already exists in Route ${dup.route} (${dup.name}). Add anyway?`);
+        if (!proceed) return;
+      }
+
+      // Route capacity check
+      if (route !== 'auto') {
+        const targetRoute = App.state.routes.find(r => r.letter === route);
+        if (targetRoute && targetRoute.stops.length >= 10) {
+          const proceed = confirm(`⚠ Route ${route} already has ${targetRoute.stops.length} stops (Google Maps limit is 10). Add anyway?`);
+          if (!proceed) return;
+        }
+      }
+
       if (route === 'auto') {
         route = App.findNearestRoute(lat, lon);
+        // Check nearest route capacity too
+        const nearestRoute = App.state.routes.find(r => r.letter === route);
+        if (nearestRoute && nearestRoute.stops.length >= 10) {
+          this.showToast(`Auto-assigned to Route ${route} (already at 10 stops — consider reassigning)`, 'info');
+        }
       }
 
       await App.addStop({ name, address, lat, lon, signs, notes, route });
@@ -275,19 +573,17 @@ const UI = {
     const street = document.getElementById('form-address').value.trim();
     const city = document.getElementById('form-city').value.trim();
     const statusEl = document.getElementById('geocode-status');
-
     if (!street) return;
-    statusEl.textContent = 'Geocoding...';
+    statusEl.textContent = 'Geocoding…';
     statusEl.className = 'form-status';
-
     const result = await Geocoder.geocode(street + ', ' + city);
     if (result) {
       document.getElementById('form-lat').value = result.lat.toFixed(6);
       document.getElementById('form-lon').value = result.lon.toFixed(6);
-      statusEl.textContent = '\u2713 Found: ' + result.display;
+      statusEl.textContent = '✓ Found: ' + result.display;
       statusEl.className = 'form-status success';
     } else {
-      statusEl.textContent = '\u2717 Not found \u2014 paste lat/lon manually from Google Maps';
+      statusEl.textContent = '✗ Not found — paste lat/lon manually from Google Maps';
       statusEl.className = 'form-status error';
     }
   },
@@ -295,7 +591,7 @@ const UI = {
   showAddRouteForm() {
     const nextLetter = App.getNextRouteLetter();
     const colors = CONFIG.ROUTE_COLORS;
-    const colorOpts = colors.map((c, i) => `<option value="${c}" style="background:${c};color:#fff">${c}</option>`).join('');
+    const colorOpts = colors.map((c) => `<option value="${c}" style="background:${c};color:#fff">${c}</option>`).join('');
 
     this.showModal('New Route', `
       <div class="form-row">
@@ -335,7 +631,7 @@ const UI = {
       </div>
       <div class="form-group">
         <label>Volunteer Name</label>
-        <input type="text" id="form-edit-volunteer" value="${route.volunteer || ''}">
+        <input type="text" id="form-edit-volunteer" value="${route.volunteer !== '[UNASSIGNED]' ? route.volunteer : ''}">
       </div>
     `, async () => {
       const color = document.getElementById('form-edit-color').value;
@@ -347,7 +643,11 @@ const UI = {
 
   showReassignForm(stopId) {
     const routes = App.state.routes;
-    const routeOpts = routes.map(r => `<option value="${r.letter}">Route ${r.letter}</option>`).join('');
+    const routeOpts = routes.map(r => {
+      const vol = r.volunteer !== '[UNASSIGNED]' ? ` — ${r.volunteer}` : '';
+      const warn = r.stops.length >= 10 ? ' ⚠' : '';
+      return `<option value="${r.letter}">Route ${r.letter}${vol}${warn} (${r.stops.length} stops)</option>`;
+    }).join('');
 
     this.showModal('Reassign Stop', `
       <div class="form-group">
@@ -364,8 +664,7 @@ const UI = {
   showReorderForm(letter) {
     const route = App.state.routes.find(r => r.letter === letter);
     if (!route) return;
-
-    const stopsList = route.stops.map((s, i) => `${i + 1}. ${s.name} \u2014 ${s.address}`).join('\n');
+    const stopsList = route.stops.map((s, i) => `${i + 1}. ${s.name} — ${s.address}`).join('\n');
 
     this.showModal('Reorder Route ' + letter, `
       <p style="font-size:12px;color:#8b949e;margin-bottom:8px">
@@ -382,12 +681,10 @@ const UI = {
     `, async () => {
       const input = document.getElementById('form-reorder').value.trim();
       if (!input) return alert('Enter the new order');
-      const order = input.split(',').map(n => parseInt(n.trim()) - 1); // 1-indexed to 0-indexed
+      const order = input.split(',').map(n => parseInt(n.trim()) - 1);
       if (order.length !== route.stops.length) return alert(`Expected ${route.stops.length} numbers, got ${order.length}`);
       if (order.some(n => isNaN(n) || n < 0 || n >= route.stops.length)) return alert('Invalid number in order');
-      // Check all unique
       if (new Set(order).size !== order.length) return alert('Duplicate numbers in order');
-
       const newOrderIds = order.map(i => route.stops[i].id);
       await App.reorderStops(letter, newOrderIds);
       this.closeModal();
@@ -407,7 +704,7 @@ const UI = {
       <div class="modal">
         <div class="modal-header">
           <h3>${title}</h3>
-          <button class="modal-close" onclick="UI.closeModal()">\u2715</button>
+          <button class="modal-close" onclick="UI.closeModal()">✕</button>
         </div>
         <div class="modal-body">${bodyHtml}</div>
         <div class="modal-footer">
@@ -418,6 +715,8 @@ const UI = {
     `;
     modal.style.display = 'flex';
     document.getElementById('modal-confirm').addEventListener('click', onConfirm);
+    // Close on backdrop click
+    modal.addEventListener('click', (e) => { if (e.target === modal) this.closeModal(); });
   },
 
   closeModal() {
@@ -425,7 +724,66 @@ const UI = {
     if (modal) modal.style.display = 'none';
   },
 
+  // ─── Presence Avatars ───
+
+  renderPresence(users) {
+    const bar = document.getElementById('presence-bar');
+    if (!bar) return;
+
+    if (!users || users.length === 0) {
+      bar.innerHTML = '';
+      return;
+    }
+
+    const mySession = App._sessionId;
+    const avatarColors = [
+      '#58a6ff','#3fb950','#f778ba','#d29922',
+      '#bc8cff','#39d2c0','#f0883e','#f85149'
+    ];
+
+    // Stable color per session (hash)
+    function colorFor(sessionId) {
+      let h = 0;
+      for (let i = 0; i < sessionId.length; i++) h = (h * 31 + sessionId.charCodeAt(i)) >>> 0;
+      return avatarColors[h % avatarColors.length];
+    }
+
+    function initials(name) {
+      if (!name || name === 'Unknown') return '?';
+      const parts = name.trim().split(/\s+/);
+      if (parts.length === 1) return parts[0][0].toUpperCase();
+      return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+    }
+
+    function timeAgo(isoStr) {
+      const secs = Math.round((Date.now() - new Date(isoStr).getTime()) / 1000);
+      if (secs < 10) return 'just now';
+      if (secs < 60) return `${secs}s ago`;
+      return `${Math.round(secs / 60)}m ago`;
+    }
+
+    const chips = users.map(u => {
+      const isMe = u.sessionId === mySession;
+      const color = isMe ? 'var(--green)' : colorFor(u.sessionId);
+      const border = isMe ? '2px solid var(--green-dark)' : '2px solid transparent';
+      const label = initials(u.name);
+      const title = `${u.name}${isMe ? ' (you)' : ''} · ${timeAgo(u.last_seen)}`;
+      return `<div class="presence-avatar" style="background:${color};border:${border}" title="${title}">${label}</div>`;
+    }).join('');
+
+    bar.innerHTML = `
+      <div class="presence-wrap">
+        <span class="presence-label">Now viewing:</span>
+        ${chips}
+      </div>
+    `;
+  },
+
+  // ─── Toast ───
+
   showToast(msg, type = 'info') {
+    // Remove existing toasts to prevent stacking
+    document.querySelectorAll('.toast').forEach(t => t.remove());
     const toast = document.createElement('div');
     toast.className = 'toast toast-' + type;
     toast.textContent = msg;

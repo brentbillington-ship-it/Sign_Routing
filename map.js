@@ -70,7 +70,7 @@ const MapModule = {
         popupHtml += `<div style="margin-top:6px;padding:4px 8px;background:#2ea043;color:#fff;border-radius:4px;font-size:11px;font-weight:600;display:inline-block">\u2713 Delivered</div>`;
         if (stop.delivered_date) {
           const d = new Date(stop.delivered_date);
-          popupHtml += `<div style="font-size:10px;color:#888;margin-top:2px">${d.toLocaleDateString()} ${d.toLocaleTimeString()}</div>`;
+          popupHtml += `<div style="font-size:10px;color:#888;margin-top:2px">${d.toLocaleString('en-US', { timeZone: 'America/Chicago', month: 'numeric', day: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true })} CT</div>`;
         }
         if (stop.delivered_by) popupHtml += `<div style="font-size:10px;color:#888">by ${stop.delivered_by}</div>`;
       }

@@ -27,6 +27,21 @@ body {
   overflow: hidden;
 }
 
+/* ─── Offline Banner ─── */
+#offline-banner {
+  display: none;
+  background: #3d2200;
+  border-bottom: 1px solid #7c4a00;
+  padding: 6px 16px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #f0883e;
+  text-align: center;
+  z-index: 200;
+  position: relative;
+}
+#offline-banner.visible { display: block; }
+
 /* ─── Header ─── */
 #header {
   background: var(--bg-card);
@@ -49,15 +64,52 @@ body {
   align-items: center;
   gap: 8px;
   margin-left: auto;
+  flex-wrap: wrap;
 }
 .stats {
   font-size: 11px;
   color: var(--text-dim);
   width: 100%;
   padding-top: 4px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-wrap: wrap;
 }
 .stats span { font-weight: 700; color: var(--text-bright); }
 .delivered-count { color: var(--green) !important; }
+
+/* Volunteer name input in header */
+#volunteer-name-wrap {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  color: var(--text-dim);
+}
+#volunteer-name-input {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  color: var(--text-bright);
+  padding: 3px 7px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-family: inherit;
+  width: 110px;
+}
+#volunteer-name-input:focus { outline: none; border-color: var(--blue); }
+#volunteer-name-input.has-name { border-color: var(--green-dark); color: var(--green); }
+
+/* Sync indicator */
+#sync-indicator {
+  font-size: 10px;
+  color: var(--text-faint);
+  white-space: nowrap;
+  margin-left: 6px;
+}
+#sync-indicator.syncing { color: var(--yellow); }
+#sync-indicator.ok { color: var(--green); }
+#sync-indicator.error { color: var(--red); }
 
 .toggle-label {
   font-size: 11px;
@@ -117,8 +169,23 @@ body {
 .admin-mode .btn-admin { background: var(--yellow); border-color: var(--yellow); color: #000; }
 
 /* ─── Layout ─── */
-.container { display: flex; height: calc(100vh - 70px); }
-body.admin-mode .container { height: calc(100vh - 110px); }
+.container {
+  display: flex;
+  height: calc(100vh - 70px);
+  height: calc(100dvh - 70px);
+}
+body.admin-mode .container {
+  height: calc(100vh - 110px);
+  height: calc(100dvh - 110px);
+}
+body.has-offline-banner .container {
+  height: calc(100vh - 96px);
+  height: calc(100dvh - 96px);
+}
+body.admin-mode.has-offline-banner .container {
+  height: calc(100vh - 136px);
+  height: calc(100dvh - 136px);
+}
 #map { flex: 1; min-width: 0; }
 #sidebar {
   width: 400px;
@@ -127,8 +194,53 @@ body.admin-mode .container { height: calc(100vh - 110px); }
   border-left: 1px solid var(--border);
 }
 
+/* ─── Volunteer Assignment Panel (in sidebar) ─── */
+#vol-panel {
+  display: none;
+  border-bottom: 2px solid var(--border);
+  background: var(--bg-card);
+}
+#vol-panel.visible { display: block; }
+.vol-panel-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 10px 14px 6px;
+}
+.vol-panel-header h3 { font-size: 12px; font-weight: 700; color: var(--text-bright); }
+.vol-panel-header button { background: none; border: none; color: var(--text-dim); font-size: 16px; cursor: pointer; }
+.vol-row {
+  display: flex; align-items: center; gap: 8px;
+  padding: 5px 14px;
+  border-top: 1px solid var(--border-light);
+}
+.vol-row-badge {
+  width: 22px; height: 22px; border-radius: 4px;
+  display: flex; align-items: center; justify-content: center;
+  font-weight: 800; font-size: 11px; color: #fff; flex-shrink: 0;
+}
+.vol-row label { font-size: 11px; color: var(--text-dim); width: 55px; flex-shrink: 0; }
+.vol-row input {
+  flex: 1;
+  padding: 4px 8px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  color: var(--text-bright);
+  font-size: 11px;
+  font-family: inherit;
+}
+.vol-row input:focus { outline: none; border-color: var(--blue); }
+.vol-row input.assigned { border-color: var(--green-dark); }
+.vol-panel-footer {
+  padding: 8px 14px 10px;
+  display: flex; gap: 6px; justify-content: flex-end;
+  border-top: 1px solid var(--border-light);
+}
+
 /* ─── Route Cards ─── */
 .route-card { border-bottom: 1px solid var(--border-light); }
+.route-card.all-delivered { opacity: 0.55; }
+.route-card.all-delivered .route-badge { filter: grayscale(0.6); }
+
 .route-header {
   display: flex;
   align-items: center;
@@ -142,14 +254,57 @@ body.admin-mode .container { height: calc(100vh - 110px); }
   width: 30px; height: 30px; border-radius: 6px;
   display: flex; align-items: center; justify-content: center;
   font-weight: 800; font-size: 13px; color: #fff; flex-shrink: 0;
+  position: relative;
+}
+/* Yellow dot = unassigned */
+.route-badge.unassigned::after {
+  content: '';
+  position: absolute;
+  top: -3px; right: -3px;
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: var(--yellow);
+  border: 2px solid var(--bg-secondary);
 }
 .route-meta { flex: 1; min-width: 0; }
 .route-meta .title { font-weight: 600; font-size: 13px; color: var(--text-bright); }
 .route-meta .info { font-size: 11px; color: var(--text-dim); margin-top: 1px; }
+.route-meta .info .unassigned-tag { color: var(--yellow); font-weight: 700; }
 .route-toggle { color: var(--text-faint); font-size: 14px; transition: transform .2s; }
 .route-card.open .route-toggle { transform: rotate(180deg); }
 .route-stops { display: none; padding: 4px 12px 12px 12px; }
 .route-card.open .route-stops { display: block; }
+
+/* Inline assign button on route header (admin only) */
+.route-assign-btn {
+  padding: 3px 8px;
+  font-size: 10px;
+  font-weight: 600;
+  border-radius: 4px;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text-dim);
+  cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
+  font-family: inherit;
+  transition: background .12s;
+}
+.route-assign-btn:hover { background: var(--border-light); color: var(--text-bright); }
+.route-assign-btn.unassigned { border-color: var(--yellow); color: var(--yellow); }
+.route-assign-btn.unassigned:hover { background: #3d2e00; }
+
+/* Signs pill on route info line */
+.signs-pill {
+  display: inline-flex; align-items: center;
+  padding: 0 5px;
+  background: #2d1e5c;
+  border-radius: 8px;
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--purple);
+  margin-left: 3px;
+}
 
 /* Progress Bar */
 .progress-bar {
@@ -217,6 +372,14 @@ body.admin-mode .container { height: calc(100vh - 110px); }
 .route-link:hover { opacity: .85; }
 .route-link.gmaps { background: var(--blue); }
 .route-link.routexl { background: var(--green-dark); }
+.copy-addrs-btn {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 6px 12px; border-radius: 5px;
+  font-size: 11px; font-weight: 600;
+  background: var(--border-light); border: 1px solid var(--border);
+  color: var(--text); cursor: pointer; font-family: inherit;
+}
+.copy-addrs-btn:hover { background: var(--border); }
 
 .route-admin-controls {
   display: flex; gap: 6px; margin-top: 8px; padding-top: 8px;
@@ -247,10 +410,7 @@ body.admin-mode .container { height: calc(100vh - 110px); }
   border-bottom: 1px solid var(--border);
 }
 .modal-header h3 { font-size: 15px; font-weight: 700; color: var(--text-bright); }
-.modal-close {
-  background: none; border: none; color: var(--text-dim);
-  font-size: 18px; cursor: pointer;
-}
+.modal-close { background: none; border: none; color: var(--text-dim); font-size: 18px; cursor: pointer; }
 .modal-body { padding: 16px; }
 .modal-footer {
   padding: 12px 16px;
@@ -271,10 +431,7 @@ body.admin-mode .container { height: calc(100vh - 110px); }
   font-size: 13px;
   font-family: inherit;
 }
-.form-group input:focus, .form-group select:focus {
-  outline: none;
-  border-color: var(--blue);
-}
+.form-group input:focus, .form-group select:focus { outline: none; border-color: var(--blue); }
 .form-row { display: flex; gap: 10px; }
 .form-row .form-group { flex: 1; }
 .form-status { font-size: 11px; margin-top: 6px; }
@@ -293,6 +450,46 @@ body.admin-mode .container { height: calc(100vh - 110px); }
   border: 1px solid var(--border);
 }
 
+/* ─── First-run Name Prompt ─── */
+#name-prompt-overlay {
+  display: none;
+  position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,.8);
+  z-index: 3000;
+  align-items: center; justify-content: center;
+}
+#name-prompt-overlay.visible { display: flex; }
+.name-prompt-box {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 28px 28px 20px;
+  width: 340px;
+  max-width: 95vw;
+  text-align: center;
+  box-shadow: 0 20px 60px rgba(0,0,0,.7);
+}
+.name-prompt-box .prompt-icon { font-size: 32px; margin-bottom: 10px; }
+.name-prompt-box h2 { font-size: 18px; font-weight: 800; color: var(--text-bright); margin-bottom: 6px; }
+.name-prompt-box p { font-size: 12px; color: var(--text-dim); margin-bottom: 18px; line-height: 1.6; }
+#prompt-name-input {
+  width: 100%; padding: 10px 12px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text-bright);
+  font-size: 15px;
+  font-family: inherit;
+  text-align: center;
+  margin-bottom: 12px;
+}
+#prompt-name-input:focus { outline: none; border-color: var(--blue); }
+.name-prompt-box .btn-skip {
+  font-size: 10px; color: var(--text-faint);
+  background: none; border: none; cursor: pointer; margin-top: 4px;
+}
+.name-prompt-box .btn-skip:hover { color: var(--text-dim); }
+
 /* ─── Toast ─── */
 .toast {
   position: fixed;
@@ -308,6 +505,7 @@ body.admin-mode .container { height: calc(100vh - 110px); }
   opacity: 0;
   transition: all .3s ease;
   pointer-events: none;
+  white-space: nowrap;
 }
 .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
 .toast-info { background: var(--bg-card); border: 1px solid var(--border); color: var(--text); }
@@ -317,8 +515,38 @@ body.admin-mode .container { height: calc(100vh - 110px); }
 /* ─── Mobile ─── */
 @media (max-width: 768px) {
   .container { flex-direction: column; }
-  #map { height: 45vh; }
-  #sidebar { width: 100%; height: 55vh; }
+  #map { height: 42vh; height: 42dvh; }
+  #sidebar { width: 100%; flex: 1; overflow-y: auto; padding-bottom: 80px; }
   .header-controls { margin-left: 0; }
   .modal { width: 95vw; }
+  body.admin-mode .container {
+    height: calc(100vh - 150px);
+    height: calc(100dvh - 150px);
+  }
+  #volunteer-name-input { width: 90px; }
 }
+
+/* ─── Presence Avatars ─── */
+#presence-bar { width: 100%; padding-top: 3px; }
+.presence-wrap {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  flex-wrap: wrap;
+}
+.presence-label {
+  font-size: 10px;
+  color: var(--text-faint);
+  white-space: nowrap;
+}
+.presence-avatar {
+  width: 22px; height: 22px;
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 9px; font-weight: 800; color: #fff;
+  cursor: default;
+  flex-shrink: 0;
+  box-shadow: 0 0 0 2px var(--bg-card);
+  transition: transform .15s;
+}
+.presence-avatar:hover { transform: scale(1.2); z-index: 1; }
