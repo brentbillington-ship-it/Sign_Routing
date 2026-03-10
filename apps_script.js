@@ -1,6 +1,15 @@
 /**
+ * ⚠️  EVERY TIME YOU CHANGE THIS FILE:
+ *  1. Save (Ctrl+S)
+ *  2. Deploy → Manage deployments
+ *  3. Click the ✏️ pencil on your existing deployment
+ *  4. Version → "New version"
+ *  5. Click Deploy
+ *  ✅ Same URL — no need to update config.js
+ * ─────────────────────────────────────────────
+ *
  * Chaka Yard Signs — Google Sheets Backend
- * 
+ *
  * SETUP:
  * 1. Create a new Google Sheet
  * 2. Rename the first tab to "stops"
@@ -194,7 +203,6 @@ function addStop(stop) {
     '',
     ''
   ]);
-  SpreadsheetApp.flush();
 
   return { success: true, id: id };
 }
@@ -205,7 +213,6 @@ function removeStop(id) {
   for (let i = 1; i < data.length; i++) {
     if (data[i][0] === id) {
       sheet.deleteRow(i + 1);
-      SpreadsheetApp.flush();
       return { success: true };
     }
   }
@@ -225,7 +232,6 @@ function updateStop(id, fields) {
           sheet.getRange(i + 1, col + 1).setValue(value);
         }
       }
-      SpreadsheetApp.flush();
       return { success: true };
     }
   }
@@ -246,7 +252,6 @@ function markDelivered(id, delivered, deliveredBy) {
       sheet.getRange(i + 1, deliveredCol + 1).setValue(delivered);
       sheet.getRange(i + 1, dateCol + 1).setValue(delivered ? new Date().toISOString() : '');
       sheet.getRange(i + 1, byCol + 1).setValue(delivered ? (deliveredBy || '') : '');
-      SpreadsheetApp.flush();
 
       return { success: true };
     }
