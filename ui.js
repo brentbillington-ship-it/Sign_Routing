@@ -100,6 +100,7 @@ const UI = {
           <input type="checkbox" id="toggle-delivered" checked> Delivered
         </label>
         <button class="btn btn-admin" id="admin-btn">⚙ Admin</button>
+        <button class="btn" id="map-toggle-btn" onclick="UI.toggleMap()" title="Show/hide map">🗺 Map</button>
       </div>
       <div class="stats" id="stats">
         <span id="sync-indicator"></span>
@@ -159,6 +160,7 @@ const UI = {
       <button class="btn btn-green" onclick="UI.showAddStopForm()">+ Add Address</button>
       <button class="btn btn-green" onclick="UI.showAddRouteForm()">+ New Route</button>
       <button class="btn" onclick="UI.toggleVolPanel()">👥 Assign Volunteers</button>
+      <button class="btn" onclick="UI.showImportForm()">⤒ Import CSV</button>
       <button class="btn" onclick="App.exportCSV()">⤓ Export CSV</button>
       <button class="btn" onclick="App.tryOSRM()">↻ Optimize All (OSRM)</button>
     `;
@@ -691,9 +693,152 @@ const UI = {
     });
   },
 
+  // ─── CSV Import ───
+
+  showImportForm() {
+    const routes = App.state.routes;
+    const routeOpts = routes.map(r => `<option value="${r.letter}">Route ${r.letter}${r.volunteer !== '[UNASSIGNED]' ? ' — ' + r.volunteer : ''}</option>`).join('');
+
+    this.showModal('Import CSV', `
+      <p style="font-size:11px;color:var(--text-dim);margin-bottom:10px;line-height:1.6">
+        Paste or upload a CSV with columns:<br>
+        <code style="color:var(--green);font-size:10px">name, address, route, signs, notes</code><br>
+        <span style="font-size:10px">Address should include city/state/zip. Route column is optional — leave blank to auto-assign to nearest route. Signs defaults to 1.</span>
+      </p>
+      <div class="form-group">
+        <label>Upload CSV file</label>
+        <input type="file" id="import-file" accept=".csv,.txt" style="font-size:11px">
+      </div>
+      <div class="form-group">
+        <label>Or paste CSV text</label>
+        <textarea id="import-paste" rows="6" style="width:100%;padding:8px;background:var(--bg-secondary);border:1px solid var(--border);border-radius:5px;color:var(--text-bright);font-size:11px;font-family:monospace;resize:vertical" placeholder="name,address,route,signs,notes&#10;John Smith,123 Oak St Coppell TX 75019,A,1,&#10;Jane Doe,456 Elm Dr Coppell TX 75019,,2,Install near sidewalk"></textarea>
+      </div>
+      <div class="form-group">
+        <label>Default route (if not specified in CSV)</label>
+        <select id="import-default-route">
+          <option value="auto">Auto (nearest)</option>
+          ${routeOpts}
+        </select>
+      </div>
+      <div id="import-status" class="form-status" style="min-height:18px"></div>
+    `, async () => {
+      await UI._runImport();
+    }, 'Preview & Import');
+  },
+
+  async _runImport() {
+    const fileInput = document.getElementById('import-file');
+    const pasteEl = document.getElementById('import-paste');
+    const statusEl = document.getElementById('import-status');
+    const defaultRoute = document.getElementById('import-default-route').value;
+
+    let rawText = pasteEl.value.trim();
+
+    // File takes priority over paste
+    if (fileInput.files.length > 0) {
+      rawText = await fileInput.files[0].text();
+    }
+
+    if (!rawText) return alert('Paste CSV text or upload a file first.');
+
+    // Parse CSV
+    const rows = rawText.split('\n').map(r => r.trim()).filter(Boolean);
+    const headers = rows[0].toLowerCase().split(',').map(h => h.trim().replace(/^"|"$/g, ''));
+
+    const col = (row, name) => {
+      const idx = headers.indexOf(name);
+      if (idx < 0) return '';
+      return (row[idx] || '').trim().replace(/^"|"$/g, '');
+    };
+
+    const dataRows = rows.slice(1).map(r => {
+      // Handle quoted commas
+      const parts = [];
+      let cur = '', inQ = false;
+      for (const ch of r) {
+        if (ch === '"') { inQ = !inQ; }
+        else if (ch === ',' && !inQ) { parts.push(cur); cur = ''; }
+        else cur += ch;
+      }
+      parts.push(cur);
+      return parts.map(p => p.trim());
+    }).filter(r => r.some(c => c));
+
+    if (dataRows.length === 0) return alert('No data rows found. Make sure your CSV has a header row.');
+
+    // Build stop list
+    const stops = dataRows.map(r => ({
+      name: col(r, 'name'),
+      address: col(r, 'address'),
+      route: col(r, 'route') || defaultRoute,
+      signs: parseInt(col(r, 'signs')) || 1,
+      notes: col(r, 'notes'),
+      lat: null, lon: null,
+      status: 'pending'  // pending | ok | geocode_failed | duplicate | added
+    }));
+
+    const invalid = stops.filter(s => !s.name || !s.address);
+    if (invalid.length > 0) return alert(`${invalid.length} row(s) missing name or address. Fix CSV and try again.`);
+
+    // Hand off to geocode + preview flow
+    this.closeModal();
+    await App.runImport(stops);
+  },
+
+  renderImportPreview(stops) {
+    const statusIcon = s => {
+      if (s.status === 'ok') return '<span style="color:var(--green)">✓</span>';
+      if (s.status === 'geocode_failed') return '<span style="color:var(--red)">✗ no coords</span>';
+      if (s.status === 'duplicate') return '<span style="color:var(--yellow)">⚠ dup</span>';
+      if (s.status === 'added') return '<span style="color:var(--green)">✓ added</span>';
+      return '<span style="color:var(--text-faint)">…</span>';
+    };
+
+    const rows = stops.map((s, i) => `
+      <tr style="border-bottom:1px solid var(--border-light);font-size:11px">
+        <td style="padding:4px 6px;color:var(--text-faint)">${i + 1}</td>
+        <td style="padding:4px 6px;color:var(--text-bright);font-weight:600">${s.name}</td>
+        <td style="padding:4px 6px;color:var(--text-dim)">${s.address}</td>
+        <td style="padding:4px 6px;text-align:center">${s.route === 'auto' ? '<em style="color:var(--text-faint)">auto</em>' : s.route}</td>
+        <td style="padding:4px 6px;text-align:center">${statusIcon(s)}</td>
+      </tr>`).join('');
+
+    const geocodeFailed = stops.filter(s => s.status === 'geocode_failed');
+    const dupes = stops.filter(s => s.status === 'duplicate');
+    const ok = stops.filter(s => s.status === 'ok');
+
+    const warnings = [];
+    if (geocodeFailed.length) warnings.push(`<span style="color:var(--red)">✗ ${geocodeFailed.length} address(es) couldn't be geocoded — they'll be skipped</span>`);
+    if (dupes.length) warnings.push(`<span style="color:var(--yellow)">⚠ ${dupes.length} duplicate(s) — they'll be skipped</span>`);
+
+    this.showModal('Import Preview', `
+      <div style="margin-bottom:10px;font-size:11px;color:var(--text-dim)">
+        <strong style="color:var(--green)">${ok.length}</strong> ready to add
+        ${warnings.length ? ' · ' + warnings.join(' · ') : ''}
+      </div>
+      <div style="overflow-x:auto;max-height:300px;overflow-y:auto;border:1px solid var(--border);border-radius:4px">
+        <table style="width:100%;border-collapse:collapse">
+          <thead style="background:var(--bg-card);position:sticky;top:0">
+            <tr style="font-size:10px;color:var(--text-dim)">
+              <th style="padding:4px 6px">#</th>
+              <th style="padding:4px 6px;text-align:left">Name</th>
+              <th style="padding:4px 6px;text-align:left">Address</th>
+              <th style="padding:4px 6px">Route</th>
+              <th style="padding:4px 6px">Status</th>
+            </tr>
+          </thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </div>
+      ${ok.length === 0 ? '<p style="margin-top:10px;font-size:11px;color:var(--red)">Nothing to import — fix errors and try again.</p>' : ''}
+    `, ok.length > 0 ? async () => {
+      await App.commitImport(stops.filter(s => s.status === 'ok'));
+    } : null, ok.length > 0 ? `Add ${ok.length} Stop${ok.length > 1 ? 's' : ''}` : null);
+  },
+
   // ─── Modal ───
 
-  showModal(title, bodyHtml, onConfirm) {
+  showModal(title, bodyHtml, onConfirm, confirmLabel = 'Confirm') {
     let modal = document.getElementById('modal-overlay');
     if (!modal) {
       modal = document.createElement('div');
@@ -709,12 +854,12 @@ const UI = {
         <div class="modal-body">${bodyHtml}</div>
         <div class="modal-footer">
           <button class="btn" onclick="UI.closeModal()">Cancel</button>
-          <button class="btn btn-green" id="modal-confirm">Confirm</button>
+          ${onConfirm ? `<button class="btn btn-green" id="modal-confirm">${confirmLabel}</button>` : ''}
         </div>
       </div>
     `;
     modal.style.display = 'flex';
-    document.getElementById('modal-confirm').addEventListener('click', onConfirm);
+    if (onConfirm) document.getElementById('modal-confirm').addEventListener('click', onConfirm);
     // Close on backdrop click
     modal.addEventListener('click', (e) => { if (e.target === modal) this.closeModal(); });
   },
@@ -722,6 +867,15 @@ const UI = {
   closeModal() {
     const modal = document.getElementById('modal-overlay');
     if (modal) modal.style.display = 'none';
+  },
+
+  toggleMap() {
+    const map = document.getElementById('map');
+    const btn = document.getElementById('map-toggle-btn');
+    const isHidden = map.classList.toggle('map-hidden');
+    btn.textContent = isHidden ? '🗺 Show Map' : '🗺 Map';
+    // Leaflet needs a size invalidation when map becomes visible again
+    if (!isHidden) setTimeout(() => MapModule.map.invalidateSize(), 50);
   },
 
   // ─── Presence Avatars ───

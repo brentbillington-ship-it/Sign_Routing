@@ -25,6 +25,10 @@ body {
   background: var(--bg-primary);
   color: var(--text);
   overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  height: 100dvh;
 }
 
 /* ─── Offline Banner ─── */
@@ -171,20 +175,8 @@ body {
 /* ─── Layout ─── */
 .container {
   display: flex;
-  height: calc(100vh - 70px);
-  height: calc(100dvh - 70px);
-}
-body.admin-mode .container {
-  height: calc(100vh - 110px);
-  height: calc(100dvh - 110px);
-}
-body.has-offline-banner .container {
-  height: calc(100vh - 96px);
-  height: calc(100dvh - 96px);
-}
-body.admin-mode.has-offline-banner .container {
-  height: calc(100vh - 136px);
-  height: calc(100dvh - 136px);
+  flex: 1;
+  min-height: 0;
 }
 #map { flex: 1; min-width: 0; }
 #sidebar {
@@ -513,16 +505,17 @@ body.admin-mode.has-offline-banner .container {
 .toast-error { background: #3d1214; border: 1px solid #6e2b2e; color: var(--red); }
 
 /* ─── Mobile ─── */
+/* Hide map toggle on desktop */
+#map-toggle-btn { display: none; }
+
 @media (max-width: 768px) {
+  #map-toggle-btn { display: inline-flex; }
   .container { flex-direction: column; }
-  #map { height: 42vh; height: 42dvh; }
-  #sidebar { width: 100%; flex: 1; overflow-y: auto; padding-bottom: 80px; }
+  #map { height: 42vh; height: 42dvh; transition: height .25s ease; flex-shrink: 0; }
+  #map.map-hidden { height: 0 !important; overflow: hidden; }
+  #sidebar { width: 100%; flex: 1; overflow-y: auto; padding-bottom: 80px; min-height: 0; }
   .header-controls { margin-left: 0; }
   .modal { width: 95vw; }
-  body.admin-mode .container {
-    height: calc(100vh - 150px);
-    height: calc(100dvh - 150px);
-  }
   #volunteer-name-input { width: 90px; }
 }
 

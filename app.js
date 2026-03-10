@@ -382,7 +382,60 @@ const App = {
     a.click();
     URL.revokeObjectURL(url);
     UI.showToast('CSV exported', 'success');
+  },
+
+  async runImport(stops) {
+    // Geocode each stop via Nominatim (1 req/sec rate limit)
+    UI.showToast(`Geocoding ${stops.length} addresses…`, 'info');
+
+    for (let i = 0; i < stops.length; i++) {
+      const s = stops[i];
+      UI.showToast(`Geocoding ${i + 1}/${stops.length}: ${s.name}…`, 'info');
+
+      // Check for duplicate first
+      const dup = this.findDuplicateStop(s.address);
+      if (dup) { s.status = 'duplicate'; continue; }
+
+      // Geocode
+      const result = await Geocoder.geocode(s.address);
+      if (result) {
+        s.lat = result.lat;
+        s.lon = result.lon;
+        // Auto-assign route if needed
+        if (s.route === 'auto') s.route = this.findNearestRoute(s.lat, s.lon);
+        s.status = 'ok';
+      } else {
+        s.status = 'geocode_failed';
+      }
+
+      // Nominatim rate limit: 1 req/sec
+      if (i < stops.length - 1) await new Promise(r => setTimeout(r, 1100));
+    }
+
+    UI.renderImportPreview(stops);
+  },
+
+  async commitImport(stops) {
+    UI.closeModal();
+    UI.showToast(`Adding ${stops.length} stops…`, 'info');
+    let added = 0;
+    for (const s of stops) {
+      try {
+        await SheetsAPI.addStop({
+          name: s.name, address: s.address,
+          lat: s.lat, lon: s.lon,
+          signs: s.signs, notes: s.notes, route: s.route
+        });
+        s.status = 'added';
+        added++;
+      } catch (e) {
+        console.error('Failed to add stop:', s.name, e);
+      }
+    }
+    await this.loadData();
+    UI.showToast(`✓ Imported ${added} stop${added !== 1 ? 's' : ''}`, 'success');
   }
+
 };
 
 // ─── Boot ───
