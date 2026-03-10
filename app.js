@@ -3,15 +3,21 @@
 const App = {
   state: { routes: [] },
 
+  // Unique ID for this browser tab session
+  _sessionId: Math.random().toString(36).slice(2, 10) + Date.now().toString(36),
+
   // Retry queue for failed markDelivered calls
   _retryQueue: [],
   _retrying: false,
   _isOffline: false,
+  _presenceInterval: null,
+  _presencePollInterval: null,
 
   async init() {
     UI.init();
     MapModule.init();
     await this.loadData();
+    this._startPresence();
     // Flush any queued retries on focus (e.g. coming back online)
     window.addEventListener('focus', () => this._flushRetryQueue());
     window.addEventListener('online', () => {
@@ -55,7 +61,64 @@ const App = {
     return this.state.routes;
   },
 
-  // ─── Retry Queue ───
+  // ─── Presence ───
+
+  _startPresence() {
+    // Send heartbeat immediately, then every 30s
+    this._sendHeartbeat();
+    this._presenceInterval = setInterval(() => this._sendHeartbeat(), 30000);
+
+    // Poll for other users every 15s
+    this._pollPresence();
+    this._presencePollInterval = setInterval(() => this._pollPresence(), 15000);
+
+    // Silent background data refresh every 15s — keeps map current
+    this._dataRefreshInterval = setInterval(() => this._silentRefresh(), 15000);
+
+    // Clean up on tab close
+    window.addEventListener('beforeunload', () => {
+      clearInterval(this._presenceInterval);
+      clearInterval(this._presencePollInterval);
+      clearInterval(this._dataRefreshInterval);
+    });
+  },
+
+  async _silentRefresh() {
+    // Skip if a modal is open — don't yank the UI mid-action
+    const modal = document.getElementById('modal-overlay');
+    if (modal && modal.style.display === 'flex') return;
+
+    try {
+      const data = await SheetsAPI.getAll();
+      if (data.error) return;
+      this.state.routes = data.routes;
+      this.render();
+    } catch (e) {
+      // Silently ignore — offline banner already handles persistent failures
+    }
+  },
+
+  async _sendHeartbeat() {
+    const name = UI.volunteerName || 'Unknown';
+    try {
+      await SheetsAPI.heartbeat(name, this._sessionId);
+    } catch (e) {
+      // Silently ignore heartbeat failures — not critical
+    }
+  },
+
+  async _pollPresence() {
+    try {
+      const result = await SheetsAPI.getPresence();
+      if (result && result.users) {
+        UI.renderPresence(result.users);
+      }
+    } catch (e) {
+      // Silently ignore presence poll failures
+    }
+  },
+
+    // ─── Retry Queue ───
 
   _enqueueRetry(fn, label) {
     this._retryQueue.push({ fn, label, attempts: 0 });
@@ -319,7 +382,60 @@ const App = {
     a.click();
     URL.revokeObjectURL(url);
     UI.showToast('CSV exported', 'success');
+  },
+
+  async runImport(stops) {
+    // Geocode each stop via Nominatim (1 req/sec rate limit)
+    UI.showToast(`Geocoding ${stops.length} addresses…`, 'info');
+
+    for (let i = 0; i < stops.length; i++) {
+      const s = stops[i];
+      UI.showToast(`Geocoding ${i + 1}/${stops.length}: ${s.name}…`, 'info');
+
+      // Check for duplicate first
+      const dup = this.findDuplicateStop(s.address);
+      if (dup) { s.status = 'duplicate'; continue; }
+
+      // Geocode
+      const result = await Geocoder.geocode(s.address);
+      if (result) {
+        s.lat = result.lat;
+        s.lon = result.lon;
+        // Auto-assign route if needed
+        if (s.route === 'auto') s.route = this.findNearestRoute(s.lat, s.lon);
+        s.status = 'ok';
+      } else {
+        s.status = 'geocode_failed';
+      }
+
+      // Nominatim rate limit: 1 req/sec
+      if (i < stops.length - 1) await new Promise(r => setTimeout(r, 1100));
+    }
+
+    UI.renderImportPreview(stops);
+  },
+
+  async commitImport(stops) {
+    UI.closeModal();
+    UI.showToast(`Adding ${stops.length} stops…`, 'info');
+    let added = 0;
+    for (const s of stops) {
+      try {
+        await SheetsAPI.addStop({
+          name: s.name, address: s.address,
+          lat: s.lat, lon: s.lon,
+          signs: s.signs, notes: s.notes, route: s.route
+        });
+        s.status = 'added';
+        added++;
+      } catch (e) {
+        console.error('Failed to add stop:', s.name, e);
+      }
+    }
+    await this.loadData();
+    UI.showToast(`✓ Imported ${added} stop${added !== 1 ? 's' : ''}`, 'success');
   }
+
 };
 
 // ─── Boot ───
